@@ -1,6 +1,5 @@
 <template>
-  <div ref="root" class="bl-card dep-path">
-    <!-- <div>num:</div> -->
+  <div ref="root" class="dep-path">
   </div>
 </template>
 <script type="text/javascript">
@@ -12,28 +11,54 @@ export default {
       svg: null,
       nodes: null,
       links: null,
-      defaultR: 5
+      defaultR: 5,
+      svgWidth: 0,
+      svgHeight: 0,
+      depData: null,
+      color: 'red'
     }
   },
+  props:['badDeps'],
   methods: {
     dataAdapter() {
-      // console.log(this.depData)
+      this.depData = []
+      let longPaths = this.badDeps[0].paths,
+        directPaths = this.badDeps[1].paths,
+        indirectPaths = this.badDeps[2].paths
+      let num = 0
+      longPaths.forEach(item => {
+        item.id = num
+        this.depData.push(item)
+        num += 1
+      })
+      directPaths.forEach(item => {
+        item.id = num
+        this.depData.push(item)
+        num += 1
+      })
+      indirectPaths.forEach(item => {
+        item.id = num
+        this.depData.push(item)
+        num += 1
+      })
+      console.log(num)
+
       let nodes = new Set(),
         links = new Set()
-      this.depData.forEach(({ path }) => {
-        for (let i = 0; i < path.length - 1; i++) {
-          nodes.add(path[i]) //add node
-          links.add(path[i] + '|' + path[i + 1]) //add link('|' is used as conjunction to connect the two nodes)
+      this.depData.forEach(d => {
+        for (let i = 0; i < d.path.length - 1; i++) {
+          nodes.add(d.path[i]) //add node
+          links.add(d.path[i] + '|' + d.path[i + 1]) //add link('|' is used as conjunction to connect the two nodes)
         }
         //we need to connect the last node and the first node in type 'indirect'
-        if (this.type === 'indirect')
-          links.add(path[path.length - 1] + '|' + path[0])
-        nodes.add(path[path.length - 1]) // do not miss the last node
+        if (d.type === 'indirect')
+          links.add(d.path[d.path.length - 1] + '|' + d.path[0])
+        nodes.add(d.path[d.path.length - 1]) // do not miss the last node
       })
       // console.log(nodes, links)
       this.graphData.nodes = [...nodes].map(d => ({ id: d }))
       this.graphData.links = [...links].map(function(d) {
-        let parts = d.split('|')
+      let parts = d.split('|')
         return { source: parts[0], target: parts[1] }
       })
       // console.log(this.graphData)
@@ -48,10 +73,10 @@ export default {
       let vm = this
       var simulation = d3.forceSimulation()
         .force("link", d3.forceLink().id(function(d) { return d.id; }))
-        .force("charge", d3.forceManyBody().distanceMax(100))
-        // .force("charge", d3.forceCollide())
-        // .force("charge", d3.forceRadial())
-        .force("center", d3.forceCenter(this.svgWidth / 2, this.svgHeight / 2));
+        .force("charge", d3.forceManyBody().strength(-200).distanceMin(20).distanceMax(100))
+        .force("center", d3.forceCenter(this.svgWidth / 2, this.svgHeight / 2))
+        // .force("y", d3.forceY(0.1))
+        // .force("x", d3.forceX(0.1));
 
       this.links = this.svg.append("g")
         .attr("class", "links")
@@ -123,9 +148,9 @@ export default {
 
     }
   },
-  props: ['color', 'type', 'depData', 'fileName','svgHeight','svgWidth'],
+  // props: ['color', 'type', 'depData', 'fileName','svgHeight','svgWidth'],
   watch: {
-    depData() {
+    badDeps() {
       // console.log('depData update')
       this.dataAdapter()
       this.draw()
@@ -133,6 +158,15 @@ export default {
   },
   created() {
     // console.log('created')
+    const requiredData = ['badDeps']
+    let cnt = 0
+    requiredData.forEach(d => {
+      this.$watch(d, val => {
+        if(val) cnt++
+        if(cnt === requiredData.length)
+          console.log('dep-path',this.badDeps)
+      })
+    })
   },
   updated() {
     // console.log('updated')
@@ -142,40 +176,42 @@ export default {
     // this.svgWidth = Math.floor(this.$refs.root.clientWidth)
     // this.svgWidth =373
     // this.svgHeight = Math.floor(this.$refs.root.clientHeight)
+    this.svgWidth = Math.floor(this.$refs.root.clientWidth)
+    this.svgHeight = Math.floor(this.$refs.root.clientHeight)
     this.svg = d3.select(this.$refs.root).append("svg").attr("width", this.svgWidth).attr("height", this.svgHeight)
     this.dataAdapter()
     this.draw()
-    this.$bus.$on('highlight-dep', dep => {
-      if (dep.type !== this.type) return
-      this.resetAllStyle()
-      let path = dep.path,
-        nodes = [],
-        links = []
-      //nodes and links are extracted from path to highlight the coresponding links and nodes svg
-      for (let i = 0, len = path.length; i < len - 1; i++) {
-        nodes.push(path[i])
-        links.push({ source: path[i], dep: path[i + 1] })
-      }
-      //we need to connect the last node and the first node in type 'indirect'
-      if (this.type === 'indirect')
-        links.push({ source: path[path.length - 1], dep: path[0] })
-      nodes.push(path[path.length - 1])
+    // this.$bus.$on('highlight-dep', dep => {
+    //   if (dep.type !== this.type) return
+    //   this.resetAllStyle()
+    //   let path = dep.path,
+    //     nodes = [],
+    //     links = []
+    //   //nodes and links are extracted from path to highlight the coresponding links and nodes svg
+    //   for (let i = 0, len = path.length; i < len - 1; i++) {
+    //     nodes.push(path[i])
+    //     links.push({ source: path[i], dep: path[i + 1] })
+    //   }
+    //   //we need to connect the last node and the first node in type 'indirect'
+    //   if (this.type === 'indirect')
+    //     links.push({ source: path[path.length - 1], dep: path[0] })
+    //   nodes.push(path[path.length - 1])
 
-      // console.log(nodes,links,this.nodes)
+    //   // console.log(nodes,links,this.nodes)
 
-      //highlight nodes
-      this.nodes.filter(function(node) {
-        return nodes.find(d => d === node.id) !== undefined
-      }).attr('stroke-dasharray', '2')
+    //   //highlight nodes
+    //   this.nodes.filter(function(node) {
+    //     return nodes.find(d => d === node.id) !== undefined
+    //   }).attr('stroke-dasharray', '2')
 
-      //highlight the first and last nodes
-      this.nodes.filter(node => nodes.findIndex(d => d === node.id) === 0).attr("r", 10)
-      this.nodes.filter(node => nodes.findIndex(d => d === node.id) === nodes.length - 1).attr("r", 4)
+    //   //highlight the first and last nodes
+    //   this.nodes.filter(node => nodes.findIndex(d => d === node.id) === 0).attr("r", 10)
+    //   this.nodes.filter(node => nodes.findIndex(d => d === node.id) === nodes.length - 1).attr("r", 4)
 
-      //highlight links
-      this.links.filter(link => links.find(d => link.source.id === d.source && link.target.id === d.dep) !== undefined)
-        .attr("stroke-dasharray", '3')
-    })
+    //   //highlight links
+    //   this.links.filter(link => links.find(d => link.source.id === d.source && link.target.id === d.dep) !== undefined)
+    //     .attr("stroke-dasharray", '3')
+    // })
     // this.dataAdapter()
     // console.log(this.color,this.type,this.depData)
   }
@@ -183,6 +219,7 @@ export default {
 
 </script>
 <style type="text/css" lang="scss" scoped>
-
-
+.dep-path {
+  height: 100%;
+}
 </style>

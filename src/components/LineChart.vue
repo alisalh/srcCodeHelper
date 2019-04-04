@@ -3,13 +3,13 @@
     <div class="line-chart" ref="root">
       <svg></svg>
     </div>
-    <div class="control-panel">
+    <!-- <div class="control-panel">
       <div class="control-len-threshold">
         <span class="label">Length Treshold</span>
         <el-slider v-model="lenThreshold" :min="0" :max='maxLen' @change="filterLongDep" show-input :show-input-controls="false">
         </el-slider>
       </div>
-    </div>
+    </div> -->
   </div>
 </template>
 <script type="text/javascript">
@@ -42,7 +42,7 @@ export default {
     dataAdapter() {
       this.chartData=[]
       let maxLen = d3.max(Object.keys(this.lenDis), d => parseInt(d))
-      for (let i = 0; i < maxLen; i++) {
+      for (let i = 0; i <= maxLen; i++) {
         if (this.lenDis[i]) this.chartData.push([i, this.lenDis[i]])
         else this.chartData.push([i, 0])
       }
@@ -67,8 +67,7 @@ export default {
         .y(function(d) { return y(d[1]); });
 
       x.domain([0, d3.max(this.chartData, d => d[0])])
-      y.domain([0, d3.max(this.chartData, d => d[1])])
-
+      y.domain([0, Math.ceil(d3.max(this.chartData, d => d[1])/1000)*1000])
       g.append("g")
         .attr("class", "axis axis--x")
         .attr("transform", "translate(0," + height + ")")
@@ -93,9 +92,9 @@ export default {
     svg {
       width: 100%;
       height: 100%;
-      .axis--x path {
-        display: none;
-      }
+      // .axis--y path {
+      //   display: none;
+      // }
       .line {
         fill: none;
         stroke: steelblue;
@@ -103,21 +102,21 @@ export default {
       }
     }
   }
-  .control-panel {
-    flex: none;
-    padding: 0 20px;
-    border-top:1px solid #ebeef5;
-    .control-len-threshold {
-      .label {
-        line-height: 40px;
-        font-weight: bold;
-      }
-      .el-slider {
-        width: 70%;
-        float: right;
-      }
-    }
-  }
+  // .control-panel {
+  //   flex: none;
+  //   padding: 0 20px;
+  //   border-top:1px solid #ebeef5;
+  //   .control-len-threshold {
+  //     .label {
+  //       line-height: 40px;
+  //       font-weight: bold;
+  //     }
+  //     .el-slider {
+  //       width: 70%;
+  //       float: right;
+  //     }
+  //   }
+  // }
 }
 
 </style>

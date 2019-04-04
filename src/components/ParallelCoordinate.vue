@@ -1,5 +1,5 @@
 <template>
-  <div ref="root" id="parallel-coordinate" @click="resetBrush" class="bl-card-shadow">
+  <div ref="root" id="parallel-coordinate" @click="resetBrush">
   </div>
 </template>
 <script type="text/javascript">

@@ -1,7 +1,5 @@
 <template>
   <div id="app">
-    <!-- <chord-chart></chord-chart> -->
-    <!-- <div class="left-panel" ref="leftPanel"> -->
     <div class="left-panel column">
       <line-chart class="line-chart" :lenDis="lenDis" :lenThreshold='lenThreshold' :maxLen='maxLen'
       @filterLongDep='filterLongDep'>
@@ -10,26 +8,17 @@
       <dep-hell-wrapper :root="treeRoot" :badDeps="badDeps" class="dep-hell-wrapper" :colorMap="colorMap">
       </dep-hell-wrapper>
     </div>
-    <div class="right-panel column">
-      <div class="row">
-        <div class="left-panel bl-card-shadow">
-          <div class="title">Currently selected file:<span class="selected-file">{{selectedFileName}}</span></div>
-          <dep-table class="dep-table"></dep-table>
-          <dep-path-wrapper class="dep-path-wrapper" :lenThreshold="lenThreshold"></dep-path-wrapper>
-        </div>
-          <code-chart class="right-panel bl-card-shadow"></code-chart>
+    <div class="center-panel column">
+      <div class="first-row bl-card-shadow">
+        <dep-path :badDeps="badDeps"></dep-path>
       </div>
-      <div class="row">
+      <div class="second-row bl-card-shadow">
         <parallel-coordinate :root="treeRoot" class='parallel-coordinate'></parallel-coordinate>
-        <word-cloud :root="treeRoot" class="word-cloud"></word-cloud>
-        <!--         <div class="partition-layout">
-          <partition :root="dependedData" class="partition-chart" type='depended'></partition>
-          <partition :root="dependingData" class="partition-chart" type='denpending'></partition>
-        </div> -->
       </div>
     </div>
-    <!-- <test></test> -->
-    <!-- <div class="right-panel"></div> -->
+    <div class="right-panel column">
+      <code-chart class="bl-card-shadow"></code-chart>
+    </div>
   </div>
 </template>
 <script>
@@ -37,9 +26,7 @@ import * as d3 from 'd3'
 import HelloWorld from './components/HelloWorld'
 import ChordChart from './components/ChordChart.vue'
 import DepHellWrapper from './components/DepHellWrapper.vue'
-import DepPathWrapper from './components/DepPathWrapper.vue'
-import DepTable from './components/DepTable.vue'
-import WordCloud from './components/WordCloud.vue'
+import DepPath from './components/DepPath.vue'
 import ParallelCoordinate from './components/ParallelCoordinate.vue'
 import Partition from './components/Partition.vue'
 import LineChart from './components/LineChart.vue'
@@ -53,9 +40,7 @@ export default {
     HelloWorld,
     ChordChart,
     DepHellWrapper,
-    DepPathWrapper,
-    DepTable,
-    WordCloud,
+    DepPath,
     ParallelCoordinate,
     Partition,
     LineChart,
@@ -72,7 +57,7 @@ export default {
       dependingData: null,
       lenDis: null,
       colorMap: { long: '#e41a1c', indirect: '#4daf4a', direct: '#377eb8' },
-      lenThreshold:25,
+      lenThreshold: 24,
       // lenThreshold:16,
       maxLen:9999
     }
@@ -124,14 +109,15 @@ export default {
         this.badDeps = badDeps
         this.lenDis = data.lenDis
         this.maxLen=badDeps.find(d=>d.type==='long').maxLen
-        // console.log(this.lenDis)
-        console.log(this.badDeps)
+        console.log('badDeps', this.badDeps)
+        console.log('lenDis', this.lenDis)
         console.log('root in app:', this.treeRoot)
       })
     },
     genRelPath(path) {
-      let match = path.match(/\/Users\/wendahuang\/Desktop\/vue\/src\/(.*)/)
-      return match ? match[1] : path
+      let match = path.match(/E:\/Workspace\/Visualization\/srcCodeHelperServer\/data\/vue\/src\/(.*)/)
+      // let match = path.match(/(.*)src(.*)/)
+      return match ? match[2] : path
     },
     partitionDataAdapter(selectedFile) {
       // 深搜查找节点
@@ -188,7 +174,7 @@ export default {
 html {
   height: 100%;
   body {
-    height: 100%;
+    height: 95%;
   }
 }
 
@@ -196,85 +182,41 @@ html {
   font-family: 'Avenir', Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /*text-align: center;*/
   color: #2c3e50;
   display: flex;
   height: 100%;
   .left-panel {
-    margin-right: 10px;
-    // padding: 0 10px;
-    flex: 1;
+    margin-right: 5px;
+    flex: 1.1;
     display: flex;
     flex-direction: column;
     .line-chart {
       flex: 1;
-      margin-bottom: 10px;
+      margin-bottom: 5px;
     }
     .bar-chart {
       flex: 1;
-      margin-bottom: 10px;
+      margin-bottom: 5px;
     }
     .dep-hell-wrapper {
-      // margin-top: 30px;
       flex: 5;
     }
   }
-  .right-panel {
-    flex: 3;
+  .center-panel {
+    flex: 2;
     display: flex;
     flex-direction: column;
-    .row {
-      &:nth-child(1) {
-        flex: 3;
-        display: flex;
-        .left-panel {
-          padding: 10px 10px 10px 10px;
-          flex: 2;
-          display: flex;
-          flex-direction: column;
-          .title{
-            font-weight: bold;
-            .selected-file{
-              text-decoration: underline;
-              font-style: italic;
-            }
-          }
-          .dep-table {
-            flex: none;
-            margin-bottom: 10px;
-          }
-          .dep-path-wrapper {
-            flex: 1;
-          }
-        }
-        .right-panel {
-          flex: 1;
-          max-width:463px;
-          // max-height:500px;
-        }
-        margin-bottom: 10px;
-
-      }
-      &:nth-child(2) {
-        flex: 1.2;
-        display: flex;
-        .parallel-coordinate {
-          flex: 3;
-          margin-right: 10px;
-        }
-        .word-cloud {
-          flex: 1;
-        }
-        .partition-layout {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          .partition-chart {
-            flex: 1;
-          }
-        }
-      }
+    margin-right: 5px;
+    .first-row {
+      flex: 3;
+      margin-bottom: 5px;
     }
+    .second-row {
+      flex: 1.3;
+    } 
+  }
+  .right-panel{
+    flex: 1;
   }
 }
 

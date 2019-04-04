@@ -88,7 +88,7 @@ export default {
       var y = d3.scaleLinear()
         .range([this.dendrogramR + this.stackHeight, this.dendrogramR + this.stackHeight + this.hierarchyHiehgt]).domain([1, 0]);
 
-      var color = d3.scaleOrdinal(d3.schemeCategory20);
+      // var color = d3.scaleOrdinal(d3.schemeCategory20);
 
       var partition = d3.partition();
 
@@ -121,12 +121,14 @@ export default {
           // console.log(d.data)
           // console.log(vm.fileDepInfo)
           //attach 'id' identifier to each path that belongs to d.data.name
+
           let depInfo = vm.fileDepInfo.find(dep => dep.fileName === d.data.name)
-          console.log(depInfo)
+          // let depInfo = vm.fileDepInfo
+          console.log('depInfo', depInfo)       // depInfo包含信息有：文件路径、三种依赖的数目、三种依赖的paths
           // depInfo.forEach((val,idx)=>val.id=idx)
           // console.log(depInfo)
           vm.$bus.$emit('begin-dep-path', Object.assign({ depInfo, colorMap: vm.colorMap }))
-          vm.$bus.$emit('begin-dep-table', Object.assign({ depInfo, colorMap: vm.colorMap }))
+          // vm.$bus.$emit('begin-dep-table', Object.assign({ depInfo, colorMap: vm.colorMap }))
           vm.$bus.$emit('file-select', d.data.name)
         })
         /*.on("mouseenter",function(d){
@@ -282,7 +284,7 @@ export default {
         for (let dep of this.badDeps) {
           let type = dep.type,
             paths = dep.paths,
-            filteredDeps = paths.filter(d => d.path.indexOf(fileName) !== -1)
+            filteredDeps = paths.filter(d => d.path.indexOf(fileName) !== -1)  //筛选包含此文件的路径
           stackItem[`${type}-paths`] = filteredDeps
           stackItem[`${type}-count`] = filteredDeps.length
         }
@@ -295,6 +297,7 @@ export default {
       // console.log(maxVal)
       var y = d3.scaleLinear()
         .range([this.dendrogramR + 5, this.dendrogramR + this.stackHeight]).domain([maxVal, 0]);
+      // 角度平分
       let offset = 2 * Math.PI / this.root.leaves().length
       var arc = d3.arc()
         .startAngle(function(d, i) { return i * offset })
