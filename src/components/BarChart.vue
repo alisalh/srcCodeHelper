@@ -26,7 +26,7 @@ export default {
       console.log("bar draw");
       d3.select("#barChart>svg *").remove();
       var svg = d3.select(this.$refs.root),
-        margin = { top: 30, right: 30, bottom: 10, left: 50 },
+        margin = { top: 30, right: 30, bottom: 10, left: 60 },
         width = svg.attr("width") - margin.left - margin.right,
         height = svg.attr("height") - margin.top - margin.bottom,
         g = svg
@@ -40,7 +40,7 @@ export default {
           .scaleBand()
           .rangeRound([0, height])
           .padding(0.3),
-        x = d3.scaleLinear().rangeRound([0, width]);
+        x = d3.scaleLinear().rangeRound([0, width-20]);
 
       y.domain(
         this.chartData.map(function(d) {
@@ -63,10 +63,11 @@ export default {
         .attr("class", "axis axis--y")
         .call(d3.axisLeft(y));
 
-      g.selectAll(".bar")
+      let barG = g.selectAll(".bar")
         .data(this.chartData)
         .enter()
-        .append("rect")
+        .append('g')
+      barG.append("rect")
         .attr("class", "bar")
 /*         .attr("x", function(d) {
           return x(d.num);
@@ -78,7 +79,15 @@ export default {
         .attr("width", function(d) {
           return x(Math.log(d.num+1));
         })
-        .attr("fill", d => this.colorMap[d.type]);
+        .attr("fill", d => this.colorMap[d.type])
+      barG.append('text')
+        .attr("x", function(d){ return x(Math.log(d.num+1))})
+        .attr("y", function(d){ return y(d.type)})
+        .attr('dx', '0.2em')
+        .attr('dy', '1.3em')
+        .text(function(d){ return d.num})
+        .style('fill', 'black')
+        .attr('font-size', 12)
     }
   },
   mounted() {
