@@ -13,7 +13,7 @@
         <dep-path :badDeps="badDeps"></dep-path>
       </div>
       <div class="second-row bl-card-shadow">
-        <parallel-coordinate :root="treeRoot" class='parallel-coordinate'></parallel-coordinate>
+        <parallel-coordinate :filesInfo="filesInfo" class='parallel-coordinate'></parallel-coordinate>
       </div>
     </div>
     <div class="right-panel column">
@@ -53,12 +53,12 @@ export default {
       selectedFileName: 'None',
       treeRoot: null,
       badDeps: null,
+      filesInfo: null,
       dependedData: null,
       dependingData: null,
       lenDis: null,
-      colorMap: { long: '#e41a1c', indirect: '#4daf4a', direct: '#377eb8' },
-      lenThreshold: 24,
-      // lenThreshold:16,
+      colorMap: { long: '#d53e4f', indirect: '#66c2a5', direct: '#377eb8' },
+      lenThreshold: 0,
       maxLen:9999
     }
   },
@@ -74,29 +74,28 @@ export default {
     // 通过slider改变len阈值时，重新向后台请求数据
     filterLongDep(val){
       this.lenThreshold=val
-      this.getFolderHierarchy()
+      this.getDepsInfo()
+      this.getFilesInfo()
     },
     getFolderHierarchy() {
-      this.$axios.get('files/getFolderHierarchyAndFileInfo', {
-        lenThreshold: this.lenThreshold,
+      this.$axios.get('files/getFolderHierarchy', {
         libName:'vue'
-        // libName:'d3'
       }).then(({ data }) => {
         let treeRoot = d3.hierarchy(data.root);
-        console.log('leaves num:',treeRoot.leaves().length)
         treeRoot.descendants().forEach((d) => {
           // 提取相对路径
           d.data.name = this.genRelPath(d.data.name)
-          if (d.data.type === 'dir') return
-          // 若是文件，则提取该文件的依赖文件和被依赖文件的相对路径
-          d.data.fileInfo.depended = d.data.fileInfo.depended.map(dep => Object.assign({},
-            dep, { src: this.genRelPath(dep.src) }))
-          d.data.fileInfo.depending = d.data.fileInfo.depending.map(dep => Object.assign({},
-            dep, { src: this.genRelPath(dep.src) }))
         })
-        treeRoot.sum(function(d) { return !d.children && d.fileInfo && d.fileInfo.size ? 1 : 0; });
+        // treeRoot.sum(function(d) { return !d.children && d.fileInfo && d.fileInfo.size ? 1 : 0; });
+        treeRoot.sum(function(d) {return !d.children && d.type==='file' ? 1 : 0;})
         this.treeRoot = treeRoot
-
+      })
+    },
+    getDepsInfo(){
+      this.$axios.get('files/getDepsInfo', {
+        lenThreshold: this.lenThreshold,
+        libName:'vue'
+      }).then(({ data }) => {
         // 提取所有坏依赖的相对路径
         let badDeps = data.badDeps
         for (let deps of badDeps) {
@@ -109,14 +108,24 @@ export default {
         this.badDeps = badDeps
         this.lenDis = data.lenDis
         this.maxLen=badDeps.find(d=>d.type==='long').maxLen
-        console.log('badDeps', this.badDeps)
-        console.log('lenDis', this.lenDis)
-        console.log('root in app:', this.treeRoot)
+      })
+    },
+    getFilesInfo(){
+       this.$axios.get('files/getFilesInfo', {
+        libName:'vue'
+      }).then(({ data }) => {
+        // data.forEach(d => {
+        //   // 若是文件，则提取该文件的依赖文件和被依赖文件的相对路径
+        //   d.fileInfo.depended = d.fileInfo.depended.map(dep => Object.assign({},
+        //     dep, { src: this.genRelPath(dep.src) }))
+        //   d.fileInfo.depending = d.fileInfo.depending.map(dep => Object.assign({},
+        //     dep, { src: this.genRelPath(dep.src) }))
+        // })
+        this.filesInfo = data
       })
     },
     genRelPath(path) {
       let match = path.match(/E:\/Workspace\/Visualization\/srcCodeHelperServer\/data\/vue\/src\/(.*)/)
-      // let match = path.match(/(.*)src(.*)/)
       return match ? match[2] : path
     },
     partitionDataAdapter(selectedFile) {
@@ -136,10 +145,8 @@ export default {
       let fileNode = dfs(this.treeRoot)
       this.dependedData = this.buildHierarchy(fileNode.data.fileInfo.depended)
       this.dependingData = this.buildHierarchy(fileNode.data.fileInfo.depending)
-      // this.dependedData=this.buildHierarchy(data.fileInfo.depended)
     },
     buildHierarchy(depends) {
-      console.log(depends)
       let root = { children: [] }
       depends.forEach((dep) => {
         let child = {
@@ -162,10 +169,12 @@ export default {
   mounted() {
     this.$bus.$on('file-select', d => this.selectedFileName = d)
     this.$bus.$on('draw-partition', (selectedFile) => {
+      // 有问题需改
       this.partitionDataAdapter(selectedFile)
-      // this.draw()
     })
     this.getFolderHierarchy()
+    this.getDepsInfo()
+    this.getFilesInfo()
   }
 }
 

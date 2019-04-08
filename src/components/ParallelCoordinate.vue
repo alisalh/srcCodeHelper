@@ -16,11 +16,10 @@ export default {
       y: {}
     }
   },
-  props: ['root'],
+  props: ['filesInfo'],
   watch: {
-    root(val) {
+    filesInfo(val) {
       if (val !== null) {
-        // console.log(this.root, this.root.leaves())
         this.dataAdapter()
         console.log(this.chartData)
         this.draw()
@@ -28,9 +27,6 @@ export default {
     }
   },
   computed: {
-    /*    extents() {
-          return this.dimensions.map(function(p) { return [0, 0]; });
-        }*/
   },
   methods: {
     resetBrush() {
@@ -53,11 +49,8 @@ export default {
 
 
       var line = d3.line().curve(d3.curveCardinal),
-        // var line=d3.line(),
-        //axis = d3.axisLeft(x),
         background,
         foreground
-
 
       var svg = d3.select(this.$refs.root).append("svg")
         .attr("width", this.svgWidth)
@@ -124,15 +117,15 @@ export default {
 
     },
     dataAdapter() {
-      const dimensions = d3.keys(this.root.leaves()[0].data.fileInfo).filter(d => d !== 'scc');
-      this.chartData = this.root.leaves().map(d => {
+      const dimensions = d3.keys(this.filesInfo[0].fileInfo).filter(d => d !== 'scc');
+      this.chartData = this.filesInfo.map(d => {
         let fileInfo = {}
         dimensions.forEach((dim) => {
-          const val = d.data.fileInfo[dim]
+          const val = d.fileInfo[dim]
           fileInfo[dim] = val.hasOwnProperty('length') ? val.length : val
         })
         return Object.assign({}, {
-          name: d.data.name,
+          name: d.name,
           ...fileInfo
         })
       })

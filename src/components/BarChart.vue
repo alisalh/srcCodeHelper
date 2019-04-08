@@ -50,7 +50,7 @@ export default {
       x.domain([
         0,
         d3.max(this.chartData, function(d) {
-          return d.num;
+          return Math.log(d.num+1);
         })
       ]);
 
@@ -76,7 +76,7 @@ export default {
         })
         .attr("height", y.bandwidth())
         .attr("width", function(d) {
-          return x(d.num);
+          return x(Math.log(d.num+1));
         })
         .attr("fill", d => this.colorMap[d.type]);
     }

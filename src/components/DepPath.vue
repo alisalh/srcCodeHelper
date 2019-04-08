@@ -11,11 +11,11 @@ export default {
       svg: null,
       nodes: null,
       links: null,
-      defaultR: 5,
+      defaultR: 4,
       svgWidth: 0,
       svgHeight: 0,
       depData: null,
-      color: 'red'
+      color: 'grey'
     }
   },
   props:['badDeps'],
@@ -71,12 +71,20 @@ export default {
       d3.select(this.$refs.root).selectAll('svg *').remove()
       // console.log(d3.select(this.$refs.root).selectAll('svg *'))
       let vm = this
-      var simulation = d3.forceSimulation()
+
+      // 小于200表示vue
+      if(this.graphData.nodes.length < 200){
+        var simulation = d3.forceSimulation()
         .force("link", d3.forceLink().id(function(d) { return d.id; }))
-        .force("charge", d3.forceManyBody().strength(-200).distanceMin(20).distanceMax(100))
+        .force("charge", d3.forceManyBody().strength(-200).distanceMin(20).distanceMax(150))
         .force("center", d3.forceCenter(this.svgWidth / 2, this.svgHeight / 2))
-        // .force("y", d3.forceY(0.1))
-        // .force("x", d3.forceX(0.1));
+      }
+      else{
+         var simulation = d3.forceSimulation()
+        .force("link", d3.forceLink().id(function(d) { return d.id; }))
+        .force("charge", d3.forceManyBody().strength(-110).distanceMin(20).distanceMax(50))
+        .force("center", d3.forceCenter(this.svgWidth / 2, this.svgHeight / 2))
+      }
 
       this.links = this.svg.append("g")
         .attr("class", "links")
@@ -84,7 +92,8 @@ export default {
         .data(this.graphData.links)
         .enter().append("line")
         .attr("stroke", d => this.color)
-        .attr("stroke-width", function(d) { return 2 });
+        .attr('stroke-opacity', 0.3)
+        .attr("stroke-width", function(d) { return 1.5 });
 
       this.nodes = this.svg.append("g")
         .attr("class", "nodes")
@@ -93,11 +102,13 @@ export default {
         .enter().append("circle")
         .attr("r", this.defaultR)
         .attr("fill", d => {
-          if (d.id === this.fileName)
-            return '#636363'
-          return 'white'
+          // if (d.id === this.fileName)
+          //   return '#636363'
+          return 'grey'
         })
-        .attr("stroke", "black")
+        .attr('opacity', 0.9)
+        // .attr("stroke", "grey")
+        // .attr('stroke-opacity',0.2)
         .on('click', (d) => {
           this.$bus.$emit('draw-wordcloud', d.id)
           this.$bus.$emit('draw-partition', d.id)
@@ -178,7 +189,9 @@ export default {
     // this.svgHeight = Math.floor(this.$refs.root.clientHeight)
     this.svgWidth = Math.floor(this.$refs.root.clientWidth)
     this.svgHeight = Math.floor(this.$refs.root.clientHeight)
-    this.svg = d3.select(this.$refs.root).append("svg").attr("width", this.svgWidth).attr("height", this.svgHeight)
+    this.svg = d3.select(this.$refs.root).append("svg")
+      .attr("width", this.svgWidth)
+      .attr("height", this.svgHeight)
     this.dataAdapter()
     this.draw()
     // this.$bus.$on('highlight-dep', dep => {

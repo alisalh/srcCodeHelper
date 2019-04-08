@@ -39,7 +39,7 @@ export default {
   props: ['root', 'badDeps', 'colorMap'],
   updated() {
     console.log("dephellwrapper updated")
-    console.log('root in dephell:', this.root)
+    console.log('root in dephell updated')
   },
   computed: {
     dendrogramR() { return Math.min(this.svgWidth, this.svgHeight) / 2 - 120 },
@@ -49,33 +49,8 @@ export default {
     }
   },
   methods: {
-    filterLongDep(val) {
-      console.log(val)
-      d3.select(".dep-hell .dep-link-wrapper").remove()
-      d3.select(".dep-hell .dendrogram").remove()
-      d3.select(".dep-hell .radial-stack").remove()
-      this.drawDepLinks()
-      this.drawDendrogram()
-    },
-    throttledFilterLongDep() {
-      let delay = 3000,
-        timer
-      console.log('change')
-      /*      function filterLongDep() {
-              console.log("cb")
-            }
-
-            function (val){
-              if(timer){
-                clearTimeout(timer)
-                timer=null
-              }
-              console.log(val)
-              setTimeout(filterLongDep.bind(this),delay)
-            }*/
-
-    },
     toggleType(idx) {
+      // splice替换元素值
       this.typeStatus.splice(idx, 1, !this.typeStatus[idx])
     },
     drawHierachy() {
@@ -118,15 +93,11 @@ export default {
             return "#fed9a6"
           return '#e5d8bd' /*color((d.children ? d : d.parent).data.name);*/
         }).on("click", function(d) {
-          // console.log(d.data)
-          // console.log(vm.fileDepInfo)
           //attach 'id' identifier to each path that belongs to d.data.name
-
           let depInfo = vm.fileDepInfo.find(dep => dep.fileName === d.data.name)
           // let depInfo = vm.fileDepInfo
           console.log('depInfo', depInfo)       // depInfo包含信息有：文件路径、三种依赖的数目、三种依赖的paths
           // depInfo.forEach((val,idx)=>val.id=idx)
-          // console.log(depInfo)
           vm.$bus.$emit('begin-dep-path', Object.assign({ depInfo, colorMap: vm.colorMap }))
           // vm.$bus.$emit('begin-dep-table', Object.assign({ depInfo, colorMap: vm.colorMap }))
           vm.$bus.$emit('file-select', d.data.name)
@@ -208,7 +179,7 @@ export default {
               .attr("transform", function(d) { return "translate(" + project(d.x, d.y) + ")"; });
 
            node.append("circle")
-              .attr("r", 2.5);
+              .attr("r", 2.5)
 
             node.append("title").text(d => d.data.name)
             node.append("text")
@@ -228,14 +199,13 @@ export default {
       // console.log(this.lenTreshold)
       // let { directCirclePaths, indirectCirclePaths } = data
       //radialStack depends on badDeps data
-      this.drawRadialStack()
       let data = this.badDeps.slice()
       let longGroup = data.find(d => d.type === 'long'),
         svg = this.centerSvg.append("g")
         .attr("class", "dep-link-wrapper"),
         vm = this
       // this.lenTreshold=longGroup.threshold
-      this.longestDepLen = longGroup.longestPathLen
+      // this.longestDepLen = longGroup.longestPathLen
       let depLink = svg.append("g").attr("class", "dep-links-group").selectAll(".dep-links-group")
       var line = d3.radialLine()
         .curve(d3.curveBundle.beta(0.85))
@@ -252,7 +222,6 @@ export default {
         .attr("d", line)
       //extract shortest paht between each node in paths to achieve edge bundling
       function extractShortesPath(paths) {
-        // console.log(paths)
         let nodes = vm.root.leaves()
         var map = {},
           shortestPathArr = [];
@@ -261,12 +230,16 @@ export default {
           map[d.data.name] = d;
         });
 
-        // console.log(map)
         // For each path, construct a link from the source to target node.
         paths.forEach(function({ path }) {
           path.reduce(function(a, b) {
-            // console.log(a,b)
-            shortestPathArr.push(map[a].path(map[b]))
+              try{
+                shortestPathArr.push(map[a].path(map[b]))
+              }
+              catch(e){
+                console.log(path)
+              }
+              // shortestPathArr.push(map[a].path(map[b]))
             return b
           })
         })
@@ -286,15 +259,13 @@ export default {
             paths = dep.paths,
             filteredDeps = paths.filter(d => d.path.indexOf(fileName) !== -1)  //筛选包含此文件的路径
           stackItem[`${type}-paths`] = filteredDeps
-          stackItem[`${type}-count`] = filteredDeps.length
+          stackItem[`${type}-count`] = Math.log(Math.log(filteredDeps.length+1)+1)
         }
         this.fileDepInfo.push(stackItem)
       })
       let series = stack(this.fileDepInfo)
-      console.log(series)
       //draw stack chart
       let maxVal = d3.max(series[series.length - 1], d => d[1])
-      // console.log(maxVal)
       var y = d3.scaleLinear()
         .range([this.dendrogramR + 5, this.dendrogramR + this.stackHeight]).domain([maxVal, 0]);
       // 角度平分
@@ -326,7 +297,6 @@ export default {
   watch: {
     //show whether particular dep-link-group is visible according to status
     typeStatus(status) {
-      // console.log(status)
       this.depLinkGroupG.attr('stroke-opacity', (d, idx) => {
         if (status[idx])
           return 0.3
@@ -334,20 +304,19 @@ export default {
           return 0
       })
     },
-    root(val) {
-      console.log('root in dephellwrapper watch:', this.root)
+    badDeps(val) {
       if (val) {
         this.initSvg()
         this.drawDendrogram()
         this.drawHierachy()
-        this.drawDepLinks()
+        this.drawRadialStack()
+        // this.drawDepLinks()
       }
     }
   },
   mounted() {
     this.svgWidth = Math.floor(this.$refs.root.clientWidth)
     this.svgHeight = Math.floor(this.$refs.root.clientHeight)
-    console.log(this.svgHeight,Math.floor(this.$refs.root.offsetHeight))
     // Todo:目前需要手动减10
     d3.select(".dep-hell svg").attr("width", this.svgWidth).attr("height", this.svgHeight-10)
       .append("g").attr("class", "center-g")
@@ -364,7 +333,6 @@ export default {
     }
   }
   .hierarchy-node {
-    // stroke: #fff;
     &:hover {
       transform: translate(20);
     }
@@ -388,10 +356,10 @@ export default {
   } */
   .dep-links-group {
     stroke-width: 4px;
-    fill: none; // stroke-opacity: 0.1;
+    fill: none; 
     .dep-links-group__indirect {
       path {
-        stroke: #4daf4a;
+        stroke: #66c2a5;
       }
     }
     .dep-links-group__direct {
@@ -401,7 +369,7 @@ export default {
     }
     .dep-links-group__long {
       path {
-        stroke: #e41a1c;
+        stroke: #d53e4f;
       }
     }
   }
