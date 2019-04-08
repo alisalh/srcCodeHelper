@@ -259,7 +259,7 @@ export default {
             paths = dep.paths,
             filteredDeps = paths.filter(d => d.path.indexOf(fileName) !== -1)  //筛选包含此文件的路径
           stackItem[`${type}-paths`] = filteredDeps
-          stackItem[`${type}-count`] = Math.log(Math.log(filteredDeps.length+1)+1)
+          stackItem[`${type}-count`] = Math.log(filteredDeps.length+1)
         }
         this.fileDepInfo.push(stackItem)
       })

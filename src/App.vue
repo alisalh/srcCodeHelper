@@ -79,7 +79,7 @@ export default {
     },
     getFolderHierarchy() {
       this.$axios.get('files/getFolderHierarchy', {
-        libName:'vue'
+        libName:'d3'
       }).then(({ data }) => {
         let treeRoot = d3.hierarchy(data.root);
         treeRoot.descendants().forEach((d) => {
@@ -94,7 +94,7 @@ export default {
     getDepsInfo(){
       this.$axios.get('files/getDepsInfo', {
         lenThreshold: this.lenThreshold,
-        libName:'vue'
+        libName:'d3'
       }).then(({ data }) => {
         // 提取所有坏依赖的相对路径
         let badDeps = data.badDeps
@@ -112,7 +112,7 @@ export default {
     },
     getFilesInfo(){
        this.$axios.get('files/getFilesInfo', {
-        libName:'vue'
+        libName:'d3'
       }).then(({ data }) => {
         // data.forEach(d => {
         //   // 若是文件，则提取该文件的依赖文件和被依赖文件的相对路径

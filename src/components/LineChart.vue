@@ -62,7 +62,7 @@ export default {
         x = d3.scaleLinear().range([0, width])
 
       var line = d3.line()
-        .curve(d3.curveBasis)
+        .curve(d3.curveMonotoneX)
         .x(function(d) { return x(d[0]); })
         .y(function(d) { return y(d[1]); });
 
@@ -79,6 +79,51 @@ export default {
 
       g.append("path").datum(this.chartData).attr("d", line)
         .attr("class", "line")
+      
+      // 添加定位线
+      var area = d3.area()
+        .x(function(d) { return x(d[0]); })
+        .y1(function(d) { return y(d[1]); })
+        .y0(height)
+        .curve(d3.curveMonotoneX)
+      var areaG =  svg.append('g')
+            .attr('class', 'areaG')
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+      let xOffset = 0
+      var gridLineG = svg.append('g').attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+      gridLineG
+        .attr('fill', 'none')
+        .attr('stroke-width', 3)
+        .attr('stroke-linejoin', 'round')
+        .attr('stroke-linecap', 'round')
+        .attr('stroke', 'black')
+        .attr('stroke-dasharray', '5,5')
+        .selectAll('.x-grid-line')
+        .data(this.chartData)
+        .enter()
+        .append('path')
+        .attr('class', 'x-grid-line')
+        .attr('opacity', 0)
+        .attr('d', d => {
+          return d3.line()([
+            [x(d[0]), y(d[1])],
+            [x(d[0]), height]
+          ])
+        })
+        .on('mouseenter', function () {
+          d3.select(this).attr('opacity', 0.5)
+        })
+        .on('mouseout', function () {
+          d3.select(this).attr('opacity', 0.0)
+        })
+        .on('click', d =>{
+            areaG.select('.areaG >*').remove()
+            areaG.append('path')
+            .attr('class', 'area-path')
+            .attr('d', area(this.chartData.filter(len => len[0] >= d[0])))
+            .attr('fill', 'steelblue')
+            .attr('opacity', 0.5)
+        })
     }
   }
 }

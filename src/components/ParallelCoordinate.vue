@@ -59,7 +59,7 @@ export default {
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
       x.domain(this.dimensions);
-      console.log(x('func'))
+      // console.log(x('func'))
       this.dimensions.forEach((d) => {
         this.y[d] = d3.scaleLinear()
           .domain(d3.extent(this.chartData, function(p) {
@@ -159,18 +159,18 @@ export default {
   },
   mounted() {
     let x = d3.scaleOrdinal().range([0, 1000]).domain(['a', 'b', 'c'])
-    console.log(x('a'), x('b'), x('c'))
+    // console.log(x('a'), x('b'), x('c'))
     this.svgWidth = Math.floor(this.$refs.root.clientWidth)
     this.svgHeight = Math.floor(this.$refs.root.clientHeight)
     this.extents = this.dimensions.map(function(p) { return [0, 0]; })
-    console.log(this.svgWidth, this.svgHeight, this.extents)
+    // console.log(this.svgWidth, this.svgHeight, this.extents)
   }
 }
 
 </script>
 <style type="text/css" lang="scss">
 #parallel-coordinate {
-  height: 100%;
+  height: 98%;
   .background path {
     fill: none;
     stroke: #ddd;
