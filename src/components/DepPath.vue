@@ -15,7 +15,7 @@ export default {
       svgWidth: 0,
       svgHeight: 0,
       depData: null,
-      color: 'grey'
+      color: '#bababa'
     }
   },
   props:['badDeps', 'filesInfo', 'filesDist'],
@@ -80,22 +80,30 @@ export default {
       else{
          var simulation = d3.forceSimulation()
         .force("link", d3.forceLink().id(function(d) { return d.id; }))
-        .force("charge", d3.forceManyBody().strength(-110).distanceMin(20).distanceMax(50))
+        .force("charge", d3.forceManyBody().strength(-110).distanceMin(20).distanceMax(60))
         .force("center", d3.forceCenter(this.svgWidth / 2, this.svgHeight / 2))
       }
 
       // 颜色色卡
-      var a = d3.rgb(0,68,27), b = d3.rgb(199,233,192)
+      var a = d3.rgb(0,60,48), b = d3.rgb(128,205,193)
       var compute = d3.interpolate(a, b)
-      
+      function up(x, y) {return x.val -y.val}
+
       this.links = this.svg.append("g")
         .attr("class", "links")
         .selectAll("line")
         .data(this.graphData.links)
         .enter().append("line")
-        .attr("stroke", d => this.color)
-        .attr('stroke-opacity', 0.3)
-        .attr("stroke-width", function(d) { return 1.5 });
+        .attr("stroke", d =>this.color)
+        .attr("stroke-width", d => {
+          for(let i=0; i< this.graphData.links.length; i++){
+            if((this.graphData.links[i].source === d.target)
+              &&(this.graphData.links[i].target === d.source))
+               return 3
+          }
+            return 1
+        })
+        .attr('stroke-opacity', 0.5);
 
       this.nodes = this.svg.append("g")
         .attr("class", "nodes")
@@ -103,22 +111,18 @@ export default {
         .data(this.graphData.nodes)
         .enter().append("circle")
         .attr("r", this.defaultR)
-        .attr("fill", d => {
-          // if (d.id === this.fileName)
-          //   return '#636363'
-          return 'grey'
-        })
-        .attr('opacity', 0.9)
-        // .attr("stroke", "grey")
-        // .attr('stroke-opacity',0.2)
+        .attr("fill", this.color)
         .on('click', (d) => {
-          let dist = this.filesDist.filter(dist => parseInt(dist.id) === d.fileid)[0]
-          let fileid = [], val = []
-          for(var key in dist){
-            if(key !== 'id'){
-              fileid.push(parseInt(key))
-              val.push(parseFloat(dist[key])) 
-            }
+          resetState()
+          // 点击节点显示相似节点
+          let dist = this.filesDist.filter(dist => parseInt(dist.id) === d.fileid)[0],
+                obj = [], fileid = [], val = []
+          for(var key in dist)
+            obj.push({key: key, val: dist[key]})
+          obj.sort(up)
+          for(let i=0; i<obj.length/2; i++){
+            fileid.push(parseInt(obj[i].key))
+            val.push(parseFloat(obj[i].val))
           }
           var linear = d3.scaleLinear().domain([Math.min(...val), Math.max(...val)]).range([0, 1])
           fileid.forEach((d, i) =>{
@@ -133,7 +137,7 @@ export default {
           .on("end", dragended));
       
       this.svg.on('click', ()=>{
-        this.nodes.attr('fill', 'grey')
+        resetState()
       })
       this.nodes.append("title")
         .text(function(d) { return d.id; })
@@ -172,6 +176,10 @@ export default {
         if (!d3.event.active) simulation.alphaTarget(0);
         d.fx = null;
         d.fy = null;
+      }
+
+      function resetState(){
+        vm.nodes.attr('fill', vm.color)
       }
 
     }
