@@ -1,7 +1,5 @@
 <template>
-  <div id="barChart"
-       class="bl-card-shadow">
-    <svg ref="root"></svg>
+  <div class="bar-chart" ref="root">
   </div>
 </template>
 <script type="text/javascript">
@@ -24,11 +22,13 @@ export default {
   methods: {
     draw() {
       console.log("bar draw");
-      d3.select("#barChart>svg *").remove();
-      var svg = d3.select(this.$refs.root),
-        margin = { top: 30, right: 30, bottom: 10, left: 60 },
-        width = svg.attr("width") - margin.left - margin.right,
-        height = svg.attr("height") - margin.top - margin.bottom,
+      d3.select(".bar-chart>svg *").remove();
+      var svg = d3.select(this.$refs.root).append('svg')
+        .attr('width', this.svgWidth)
+        .attr('height', this.svgHeight),
+        margin = { top: 0, right: 40, bottom: 10, left: 60},
+        width = this.svgWidth - margin.left - margin.right,
+        height = this.svgHeight - margin.top - margin.bottom,
         g = svg
           .append("g")
           .attr(
@@ -55,13 +55,9 @@ export default {
       ]);
 
       g.append("g")
-        .attr("class", "axis axis--x")
-        // .attr("transform", "translate(0," + height + ")")
-        .call(d3.axisTop(x));
-
-      g.append("g")
         .attr("class", "axis axis--y")
-        .call(d3.axisLeft(y));
+        .call(d3.axisLeft(y))
+        .call(g => g.select('.domain').remove())
 
       let barG = g.selectAll(".bar")
         .data(this.chartData)
@@ -69,9 +65,6 @@ export default {
         .append('g')
       barG.append("rect")
         .attr("class", "bar")
-/*         .attr("x", function(d) {
-          return x(d.num);
-        }) */
         .attr("y", function(d) {
           return y(d.type);
         })
@@ -84,7 +77,7 @@ export default {
         .attr("x", function(d){ return x(Math.log(d.num+1))})
         .attr("y", function(d){ return y(d.type)})
         .attr('dx', '0.2em')
-        .attr('dy', '1.3em')
+        .attr('dy', '1.0em')
         .text(function(d){ return d.num})
         .style('fill', 'black')
         .attr('font-size', 12)
@@ -93,17 +86,11 @@ export default {
   mounted() {
     this.svgWidth = Math.floor(this.$refs.root.clientWidth);
     this.svgHeight = Math.floor(this.$refs.root.clientHeight);
-    d3.select(this.$refs.root)
-      .attr("width", this.svgWidth)
-      .attr("height", this.svgHeight);
   }
 };
 </script>
 <style type="text/css" lang="scss">
-#barChart {
-  svg {
-    width: 100%;
-    height: 100%;
-  }
+.barChart { 
+  height: 100%;
 }
 </style>

@@ -1,13 +1,12 @@
 <template>
   <div class="dep-hell bl-card-shadow" ref="root">
-    <!-- <svg :width="svgWidth" :height="svgHeight" ref="svg"> -->
     <svg ref="svg">
-      <g class="legend-wrapper" :style="{transform:`translateX(${(svgWidth-legendWrapperWidth)/2}px)`}">
+      <!-- <g class="legend-wrapper" :style="{transform:`translateX(${(svgWidth-legendWrapperWidth)/2}px)`}">
         <g :style="{transform:`translate(${idx*(legend.width+legendLabelLen+20)}px,20px)`}" v-for="(val,key,idx) in colorMap">
           <rect :width="legend.width" :height="legend.height" :fill="val" rx="5" ry="5" @click="toggleType(idx)" :class="{'disabled-type':!typeStatus[idx]}"></rect>
           <text :textLength="legendLabelLen" :x="legend.width+3" :y="legend.height/2" lengthAdjust="spacingAndGlyphs" alignment-baseline="central">{{key}}</text>
         </g>
-      </g>
+      </g> -->
     </svg>
   </div>
 </template>
@@ -31,7 +30,7 @@ export default {
       typeStatus: [true, true, true], //indicates whether corresponding type(dep link and rect style) is visible or not
       depLinkGroupG: null,
       longestDepLen: 99999,
-      hierarchyHiehgt: 100,
+      hierarchyHiehgt: 110,
       stackHeight: 30,
       fileDepInfo: null // store dep info for each file
     }
@@ -42,7 +41,7 @@ export default {
     console.log('root in dephell updated')
   },
   computed: {
-    dendrogramR() { return Math.min(this.svgWidth, this.svgHeight) / 2 - 120 },
+    dendrogramR() { return Math.min(this.svgWidth, this.svgHeight) / 2 - 130 },
     legendWrapperWidth() {
       let num = Object.keys(this.colorMap).length
       return (this.legend.width + this.legendInnerPadding + this.legendLabelLen) * num + (this.legendOuterPadding) * (num - 1)
@@ -56,23 +55,16 @@ export default {
     drawHierachy() {
       let vm = this
       var formatNumber = d3.format(",d");
-
       var x = d3.scaleLinear()
         .range([0, 2 * Math.PI]);
-
       var y = d3.scaleLinear()
         .range([this.dendrogramR + this.stackHeight, this.dendrogramR + this.stackHeight + this.hierarchyHiehgt]).domain([1, 0]);
-
-      // var color = d3.scaleOrdinal(d3.schemeCategory20);
-
       var partition = d3.partition();
-
       var arc = d3.arc()
         .startAngle(function(d) { return Math.max(0, Math.min(2 * Math.PI, x(d.x0))); })
         .endAngle(function(d) { return Math.max(0, Math.min(2 * Math.PI, x(d.x1))); })
         .innerRadius(function(d) { return Math.max(0, y(d.y0)); })
         .outerRadius(function(d) { return Math.max(0, y(d.y1)); });
-
 
       var svg = this.centerSvg.append("g")
 
@@ -83,80 +75,48 @@ export default {
         .attr("d", arc)
         .attr("id", d => d.data.name)
         .style("stroke", d => {
-          /*          if(d.data.type==="dir")
-                      return 'black'
-                    else*/
           return 'white'
         })
         .style("fill", function(d) {
           if (d.data.type === "dir")
             return "#fed9a6"
-          return '#e5d8bd' /*color((d.children ? d : d.parent).data.name);*/
+          return '#e5d8bd' 
         }).on("click", function(d) {
           //attach 'id' identifier to each path that belongs to d.data.name
-          let depInfo = vm.fileDepInfo.find(dep => dep.fileName === d.data.name)
-          // let depInfo = vm.fileDepInfo
-          console.log('depInfo', depInfo)       // depInfo包含信息有：文件路径、三种依赖的数目、三种依赖的paths
-          // depInfo.forEach((val,idx)=>val.id=idx)
+          let depInfo = vm.fileDepInfo.find(dep => dep.fileName === d.data.name) // depInfo包含信息有：文件路径、三种依赖的数目、三种依赖的paths
           vm.$bus.$emit('begin-dep-path', Object.assign({ depInfo, colorMap: vm.colorMap }))
-          // vm.$bus.$emit('begin-dep-table', Object.assign({ depInfo, colorMap: vm.colorMap }))
           vm.$bus.$emit('file-select', d.data.name)
         })
-        /*.on("mouseenter",function(d){
-                  d3.select(this).attr("transform",'scale(2 2)')
-                  console.log(d)
-                })*/
         .append("title")
-        // .text(function(d) { return d.data.name.slice(d.data.name.lastIndexOf('/') + 1) })
         .text((d) => d.data.name)
-        .each(function(d) {
-          // console.log(this)
-          // console.log(this.getBBox().width)
-        })
-      /*      node.filter(d => d.data.type === "dir").append("text").attr("transform", function(d) {
-                let rotateDeg = (x(d.x0) * 180 / Math.PI - 90 + x(d.x1) * 180 / Math.PI - 90) / 2,
-                  tranlsateX = y(d.y1)
-                return `rotate(${rotateDeg})translate(${tranlsateX})rotate(90)`
-              }).style("text-anchor", "middle")
-              .text(function(d) {
-                return arc(d)
-              })*/
-      node.filter(d => d.data.type === "dir").append("text")
-        .attr("dy", 13)
-        // .attr("dx",30)
-        // .attr("dx",d=>document.getElementById(d.data.name.slice(d.data.name.lastIndexOf('\\') + 1)).getTotalLength()/2)
-        .append("textPath")
-        .attr("href", d => '#' + d.data.name)
-        .each(function(d) {
-          // console.log(document.getElementById(d.data.name).getTotalLength())
-        })
-        .text(d => d.data.name.slice(d.data.name.lastIndexOf('/') + 1))
-        .each(function(d) {
-          //filter visible text
-          let maxDim = Math.max(this.getBBox().height, this.getBBox().width),
-            visible = maxDim < document.getElementById(d.data.name).getTotalLength() / 4
-          /*              console.log(this,this.getBBox().width,document.getElementById(d.data.name).getTotalLength(),d.data.name,this.getBBox().width<document.getElementById(d.data.name).getTotalLength()/4)*/
-          if (!visible) {
-            // console.log("none")
-            d3.select(this).text("")
-            // console.log(this.getBBox().width,document.getElementById(d.data.name).getTotalLength(),d.data.name)
-          }
-        })
-      /*        console.log("width")
-              d3.selectAll("text").each(function(d){
-                console.log(this.getBBox().width)
-              })
-      */
+  
+      // 添加文字
+      // node.filter(d => d.data.type === "dir").append("text")
+      //   .attr("dy", 13)
+      //   // .attr("dx",30)
+      //   // .attr("dx",d=>document.getElementById(d.data.name.slice(d.data.name.lastIndexOf('\\') + 1)).getTotalLength()/2)
+      //   .append("textPath")
+      //   .attr("href", d => '#' + d.data.name)
+      //   .each(function(d) {
+      //     // console.log(document.getElementById(d.data.name).getTotalLength())
+      //   })
+      //   .text(d => d.data.name.slice(d.data.name.lastIndexOf('/') + 1))
+      //   .each(function(d) {
+      //     //filter visible text
+      //     let maxDim = Math.max(this.getBBox().height, this.getBBox().width),
+      //       visible = maxDim < document.getElementById(d.data.name).getTotalLength() / 4
+      //     /*              console.log(this,this.getBBox().width,document.getElementById(d.data.name).getTotalLength(),d.data.name,this.getBBox().width<document.getElementById(d.data.name).getTotalLength()/4)*/
+      //     if (!visible) {
+      //       // console.log("none")
+      //       d3.select(this).text("")
+      //       // console.log(this.getBBox().width,document.getElementById(d.data.name).getTotalLength(),d.data.name)
+      //     }
+      //   })
 
     },
     drawDendrogram() {
-      // console.log(this.lenTreshold,legendInnerPadding)
-           let vm = this
-/*             let svg = this.svg.append("g")
-              .attr("transform", "translate(" + this.svgWidth / 2 + "," + (this.svgHeight / 2) + ")")
-              .attr("class", "dendrogram"); */
-        let svg=this.centerSvg.append("g")
-      
+      let vm = this
+      let svg=this.centerSvg.append("g")
       var cluster = d3.cluster()
         .size([360, this.dendrogramR]).separation(() => 1);
       cluster(this.root)
@@ -184,10 +144,6 @@ export default {
             node.append("title").text(d => d.data.name)
             node.append("text")
               .attr("dy", "0.31em")
-      // .attr("x", function(d) { return d.x < 180 === !d.children ? 6 : -6; })
-      // .style("text-anchor", function(d) { return d.x < 180 === !d.children ? "start" : "end"; })
-      // .attr("transform", function(d) { return "rotate(" + (d.x < 180 ? d.x - 90 : d.x + 90) + ")"; })
-      // .text(function(d) { return d.id.substring(d.id.lastIndexOf(".") + 1); });
 
       function project(x, y) {
         var angle = (x - 90) / 180 * Math.PI,
@@ -196,16 +152,11 @@ export default {
       }
     },
     drawDepLinks() {
-      // console.log(this.lenTreshold)
-      // let { directCirclePaths, indirectCirclePaths } = data
-      //radialStack depends on badDeps data
       let data = this.badDeps.slice()
       let longGroup = data.find(d => d.type === 'long'),
         svg = this.centerSvg.append("g")
         .attr("class", "dep-link-wrapper"),
         vm = this
-      // this.lenTreshold=longGroup.threshold
-      // this.longestDepLen = longGroup.longestPathLen
       let depLink = svg.append("g").attr("class", "dep-links-group").selectAll(".dep-links-group")
       var line = d3.radialLine()
         .curve(d3.curveBundle.beta(0.85))
@@ -289,9 +240,6 @@ export default {
     initSvg() {
       this.svg = d3.select(".dep-hell svg")
       this.centerSvg = d3.select(".dep-hell svg .center-g")
-      /*            this.svg = d3.select(".dep-hell").append("svg")
-                    .attr("width", this.svgWidth)
-                    .attr("height", this.svgHeight)*/
     }
   },
   watch: {
@@ -318,9 +266,9 @@ export default {
     this.svgWidth = Math.floor(this.$refs.root.clientWidth)
     this.svgHeight = Math.floor(this.$refs.root.clientHeight)
     // Todo:目前需要手动减10
-    d3.select(".dep-hell svg").attr("width", this.svgWidth).attr("height", this.svgHeight-10)
+    d3.select(".dep-hell svg").attr("width", this.svgWidth).attr("height", this.svgHeight)
       .append("g").attr("class", "center-g")
-      .attr("transform", "translate(" + this.svgWidth / 2 + "," + (this.svgHeight / 1.9) + ")")
+      .attr("transform", "translate(" + this.svgWidth / 2 + "," + (this.svgHeight / 2) + ")")
   }
 }
 

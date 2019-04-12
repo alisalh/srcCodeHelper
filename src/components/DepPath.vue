@@ -18,20 +18,15 @@ export default {
       color: 'grey'
     }
   },
-  props:['badDeps'],
+  props:['badDeps', 'filesInfo', 'filesDist'],
   methods: {
     dataAdapter() {
       this.depData = []
       let longPaths = this.badDeps[0].paths,
-        directPaths = this.badDeps[1].paths,
-        indirectPaths = this.badDeps[2].paths
+        indirectPaths = this.badDeps[1].paths,
+        directPaths = this.badDeps[2].paths
       let num = 0
       longPaths.forEach(item => {
-        item.id = num
-        this.depData.push(item)
-        num += 1
-      })
-      directPaths.forEach(item => {
         item.id = num
         this.depData.push(item)
         num += 1
@@ -41,8 +36,11 @@ export default {
         this.depData.push(item)
         num += 1
       })
-      console.log(num)
-
+      directPaths.forEach(item => {
+        item.id = num
+        this.depData.push(item)
+        num += 1
+      })
       let nodes = new Set(),
         links = new Set()
       this.depData.forEach(d => {
@@ -55,13 +53,13 @@ export default {
           links.add(d.path[d.path.length - 1] + '|' + d.path[0])
         nodes.add(d.path[d.path.length - 1]) // do not miss the last node
       })
-      // console.log(nodes, links)
-      this.graphData.nodes = [...nodes].map(d => ({ id: d }))
+      this.graphData.nodes = [...nodes].map(d => ({ 
+        id: d, 
+        fileid: this.filesInfo.filter(file => file.name === d)[0].id}))
       this.graphData.links = [...links].map(function(d) {
       let parts = d.split('|')
         return { source: parts[0], target: parts[1] }
       })
-      // console.log(this.graphData)
     },
     resetAllStyle() {
       this.nodes.attr("stroke-dasharray", null).attr("r", this.defaultR)
@@ -76,7 +74,7 @@ export default {
       if(this.graphData.nodes.length < 200){
         var simulation = d3.forceSimulation()
         .force("link", d3.forceLink().id(function(d) { return d.id; }))
-        .force("charge", d3.forceManyBody().strength(-200).distanceMin(20).distanceMax(150))
+        .force("charge", d3.forceManyBody().strength(-300).distanceMin(20).distanceMax(100))
         .force("center", d3.forceCenter(this.svgWidth / 2, this.svgHeight / 2))
       }
       else{
@@ -86,6 +84,10 @@ export default {
         .force("center", d3.forceCenter(this.svgWidth / 2, this.svgHeight / 2))
       }
 
+      // 颜色色卡
+      var a = d3.rgb(0,68,27), b = d3.rgb(199,233,192)
+      var compute = d3.interpolate(a, b)
+      
       this.links = this.svg.append("g")
         .attr("class", "links")
         .selectAll("line")
@@ -110,14 +112,29 @@ export default {
         // .attr("stroke", "grey")
         // .attr('stroke-opacity',0.2)
         .on('click', (d) => {
-          this.$bus.$emit('draw-wordcloud', d.id)
-          this.$bus.$emit('draw-partition', d.id)
+          let dist = this.filesDist.filter(dist => parseInt(dist.id) === d.fileid)[0]
+          let fileid = [], val = []
+          for(var key in dist){
+            if(key !== 'id'){
+              fileid.push(parseInt(key))
+              val.push(parseFloat(dist[key])) 
+            }
+          }
+          var linear = d3.scaleLinear().domain([Math.min(...val), Math.max(...val)]).range([0, 1])
+          fileid.forEach((d, i) =>{
+            this.nodes.filter(node => node.fileid === d)
+              .attr('fill', compute(linear(val[i])))
+          })
+          d3.event.stopPropagation()
         })
         .call(d3.drag()
           .on("start", dragstarted)
           .on("drag", dragged)
           .on("end", dragended));
-
+      
+      this.svg.on('click', ()=>{
+        this.nodes.attr('fill', 'grey')
+      })
       this.nodes.append("title")
         .text(function(d) { return d.id; })
 
@@ -159,23 +176,25 @@ export default {
 
     }
   },
-  // props: ['color', 'type', 'depData', 'fileName','svgHeight','svgWidth'],
   watch: {
-    badDeps() {
-      // console.log('depData update')
-      this.dataAdapter()
-      this.draw()
-    }
+    // badDeps() {
+    //   // console.log('depData update')
+    //   this.dataAdapter()
+    //   this.draw()
+    // }
   },
   created() {
-    // console.log('created')
-    const requiredData = ['badDeps']
+    const requiredData = ['badDeps', 'filesInfo', 'filesDist']
     let cnt = 0
     requiredData.forEach(d => {
       this.$watch(d, val => {
         if(val) cnt++
-        if(cnt === requiredData.length)
-          console.log('dep-path',this.badDeps)
+        if(cnt === requiredData.length) {
+          console.log('filesInfo', this.filesInfo)
+          console.log('filesDist', this.filesDist)
+          this.dataAdapter()
+          this.draw()
+        }
       })
     })
   },
@@ -183,17 +202,11 @@ export default {
     // console.log('updated')
   },
   mounted() {
-    // console.log('mount')
-    // this.svgWidth = Math.floor(this.$refs.root.clientWidth)
-    // this.svgWidth =373
-    // this.svgHeight = Math.floor(this.$refs.root.clientHeight)
     this.svgWidth = Math.floor(this.$refs.root.clientWidth)
     this.svgHeight = Math.floor(this.$refs.root.clientHeight)
     this.svg = d3.select(this.$refs.root).append("svg")
       .attr("width", this.svgWidth)
       .attr("height", this.svgHeight)
-    this.dataAdapter()
-    this.draw()
     // this.$bus.$on('highlight-dep', dep => {
     //   if (dep.type !== this.type) return
     //   this.resetAllStyle()

@@ -131,11 +131,11 @@ export default {
       })
     },
     brushstart() {
-      console.log('brush start')
+      // console.log('brush start')
       d3.event.sourceEvent.stopPropagation();
     },
     brushParallelChart() {
-      console.log(this.extents)
+      // console.log(this.extents)
       const that = this
       for (var i = 0; i < this.dimensions.length; ++i) {
         const dim = this.dimensions[i]

@@ -1,16 +1,18 @@
 <template>
   <div id="app">
     <div class="left-panel column">
-      <line-chart class="line-chart" :lenDis="lenDis" :lenThreshold='lenThreshold' :maxLen='maxLen'
-      @filterLongDep='filterLongDep'>
-      </line-chart>
-      <bar-chart class="bar-chart" :chartData="barChartData" :colorMap="colorMap"></bar-chart>
+      <div class='control-panel bl-card-shadow'>
+        <line-chart :lenDis="lenDis" :lenThreshold='lenThreshold' :maxLen='maxLen'>
+        </line-chart>
+        <bar-chart :chartData="barChartData" :colorMap="colorMap"></bar-chart>
+      </div>
       <dep-hell-wrapper :root="treeRoot" :badDeps="badDeps" class="dep-hell-wrapper" :colorMap="colorMap">
       </dep-hell-wrapper>
+      <div class='scatter bl-card-shadow'></div>
     </div>
     <div class="center-panel column">
       <div class="first-row bl-card-shadow">
-        <dep-path :badDeps="badDeps"></dep-path>
+        <dep-path :badDeps="badDeps" :filesInfo="filesInfo" :filesDist="filesDist"></dep-path>
       </div>
       <div class="second-row bl-card-shadow">
         <parallel-coordinate :filesInfo="filesInfo" class='parallel-coordinate'></parallel-coordinate>
@@ -54,6 +56,8 @@ export default {
       treeRoot: null,
       badDeps: null,
       filesInfo: null,
+      filesDist: null,
+      filesList: null,
       dependedData: null,
       dependingData: null,
       lenDis: null,
@@ -77,15 +81,22 @@ export default {
       this.getDepsInfo()
       this.getFilesInfo()
     },
+    getFilesList(){
+      this.$axios.get('files/getFileList', {
+        // 暂无参数
+      }).then(({data}) => {
+        this.filesList = data
+      })
+    },
     getFolderHierarchy() {
       this.$axios.get('files/getFolderHierarchy', {
-        libName:'d3'
+        libName:'vue'
       }).then(({ data }) => {
         let treeRoot = d3.hierarchy(data.root);
-        treeRoot.descendants().forEach((d) => {
-          // 提取相对路径
-          d.data.name = this.genRelPath(d.data.name)
-        })
+        // treeRoot.descendants().forEach((d) => {
+        //   // 提取相对路径
+        //   d.data.name = this.genRelPath(d.data.name)
+        // })
         // treeRoot.sum(function(d) { return !d.children && d.fileInfo && d.fileInfo.size ? 1 : 0; });
         treeRoot.sum(function(d) {return !d.children && d.type==='file' ? 1 : 0;})
         this.treeRoot = treeRoot
@@ -93,15 +104,15 @@ export default {
     },
     getDepsInfo(){
       this.$axios.get('files/getDepsInfo', {
-        lenThreshold: this.lenThreshold,
-        libName:'d3'
+        // 暂无参数
       }).then(({ data }) => {
+        console.log('depsInfo', data)
         // 提取所有坏依赖的相对路径
         let badDeps = data.badDeps
         for (let deps of badDeps) {
           for (let { path } of deps.paths) {
             for (let i = 0, len = path.length; i < len; i++) {
-              path[i] = this.genRelPath(path[i])
+              path[i] = this.filesList[path[i]]
             }
           }
         }
@@ -112,7 +123,7 @@ export default {
     },
     getFilesInfo(){
        this.$axios.get('files/getFilesInfo', {
-        libName:'d3'
+        // 暂无参数
       }).then(({ data }) => {
         // data.forEach(d => {
         //   // 若是文件，则提取该文件的依赖文件和被依赖文件的相对路径
@@ -124,9 +135,16 @@ export default {
         this.filesInfo = data
       })
     },
+    getFilesDist(){
+      this.$axios.get('files/getDistance', {
+        // 暂无参数
+      }).then(({ data }) => {
+        this.filesDist = data
+      })
+    },
     genRelPath(path) {
-      let match = path.match(/E:\/Workspace\/Visualization\/srcCodeHelperServer\/data\/vue\/src\/(.*)/)
-      return match ? match[2] : path
+      // let match = path.match(/E:\/Workspace\/Visualization\/srcCodeHelperServer\/data\/vue\/src\/(.*)/)
+      // return match ? match[2] : path
     },
     partitionDataAdapter(selectedFile) {
       // 深搜查找节点
@@ -172,9 +190,11 @@ export default {
       // 有问题需改
       this.partitionDataAdapter(selectedFile)
     })
+    this.getFilesList()
     this.getFolderHierarchy()
     this.getDepsInfo()
     this.getFilesInfo()
+    this.getFilesDist()
   }
 }
 
@@ -195,30 +215,38 @@ html {
   display: flex;
   height: 100%;
   .left-panel {
-    margin-right: 5px;
+    margin-right: 3px;
     flex: 1.1;
     display: flex;
     flex-direction: column;
-    .line-chart {
-      flex: 1;
-      margin-bottom: 5px;
-    }
-    .bar-chart {
-      flex: 1;
-      margin-bottom: 5px;
+    .control-panel{
+      flex: 1.3;
+      margin-bottom: 3px;
+      display: flex;
+      flex-direction: column;
+      .line-chart{
+        flex: 1;
+      }
+      .bar-chart{
+        flex: 1;
+      }
     }
     .dep-hell-wrapper {
-      flex: 5;
+      flex: 4;
+      margin-bottom: 3px;
+    }
+    .scatter{
+      flex: 3;
     }
   }
   .center-panel {
     flex: 2;
     display: flex;
     flex-direction: column;
-    margin-right: 5px;
+    margin-right: 3px;
     .first-row {
       flex: 3;
-      margin-bottom: 5px;
+      margin-bottom: 3px;
     }
     .second-row {
       flex: 1.3;

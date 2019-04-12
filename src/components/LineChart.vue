@@ -1,15 +1,5 @@
 <template>
-  <div id='line-chart-wrapper' class="bl-card-shadow">
-    <div class="line-chart" ref="root">
-      <svg></svg>
-    </div>
-    <!-- <div class="control-panel">
-      <div class="control-len-threshold">
-        <span class="label">Length Treshold</span>
-        <el-slider v-model="lenThreshold" :min="0" :max='maxLen' @change="filterLongDep" show-input :show-input-controls="false">
-        </el-slider>
-      </div>
-    </div> -->
+  <div class="line-chart" ref="root">
   </div>
 </template>
 <script type="text/javascript">
@@ -26,8 +16,6 @@ export default {
   mounted() {
     this.svgWidth = Math.floor(this.$refs.root.clientWidth)
     this.svgHeight = Math.floor(this.$refs.root.clientHeight)
-    // d3.select(this.$refs.root).attr("width", this.svgWidth).attr("height", this.svgHeight)
-    console.log(this.svgWidth, this.svgHeight, this.lenDis)
   },
   watch: {
     lenDis(val) {
@@ -52,8 +40,10 @@ export default {
     },
     draw() {
       d3.select('.line-chart>svg *').remove()
-      var svg = d3.select(".line-chart svg"),
-        margin = { top: 20, right: 30, bottom: 30, left: 50 },
+      var svg = d3.select(this.$refs.root).append('svg')
+        .attr('width', this.svgWidth)
+        .attr('height', this.svgHeight),
+        margin = { top: 10, right: 60, bottom: 15, left: 60 },
         width = this.svgWidth - margin.left - margin.right,
         height = this.svgHeight - margin.top - margin.bottom,
         g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
@@ -71,11 +61,12 @@ export default {
       g.append("g")
         .attr("class", "axis axis--x")
         .attr("transform", "translate(0," + height + ")")
-        .call(d3.axisBottom(x));
+        .call(d3.axisBottom(x).tickSize(4))
+        // .call(g => g.select('.domain').remove());
 
       g.append("g")
         .attr("class", "axis axis--y")
-        .call(d3.axisLeft(y).ticks(5, 's'))
+        .call(d3.axisLeft(y).ticks(3, 's').tickSize(4))
 
       g.append("path").datum(this.chartData).attr("d", line)
         .attr("class", "line")
@@ -130,38 +121,15 @@ export default {
 
 </script>
 <style type="text/css" lang="scss">
-@import "../assets/reset.scss";
-#line-chart-wrapper {
   .line-chart {
-    flex: auto;
+    height: 100%;
     svg {
-      width: 100%;
-      height: 100%;
-      // .axis--y path {
-      //   display: none;
-      // }
       .line {
         fill: none;
         stroke: steelblue;
         stroke-width: 1.5px;
       }
     }
-  }
-  // .control-panel {
-  //   flex: none;
-  //   padding: 0 20px;
-  //   border-top:1px solid #ebeef5;
-  //   .control-len-threshold {
-  //     .label {
-  //       line-height: 40px;
-  //       font-weight: bold;
-  //     }
-  //     .el-slider {
-  //       width: 70%;
-  //       float: right;
-  //     }
-  //   }
-  // }
 }
 
 </style>
