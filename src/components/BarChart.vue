@@ -8,7 +8,8 @@ export default {
   data() {
     return {
       svgWidth: null,
-      svgHeight: null
+      svgHeight: null,
+      svg: null
     };
   },
   props: ["chartData", "colorMap"],
@@ -24,13 +25,10 @@ export default {
     draw() {
       console.log("bar draw");
       d3.select(".bar-chart>svg *").remove();
-      var svg = d3.select(this.$refs.root).append('svg')
-        .attr('width', this.svgWidth)
-        .attr('height', this.svgHeight),
-        margin = { top: 0, right: 40, bottom: 10, left: 60},
+      var margin = { top: 0, right: 40, bottom: 10, left: 60},
         width = this.svgWidth - margin.left - margin.right,
         height = this.svgHeight - margin.top - margin.bottom,
-        g = svg
+        g = this.svg
           .append("g")
           .attr(
             "transform",
@@ -87,9 +85,9 @@ export default {
   mounted() {
     this.svgWidth = Math.floor(this.$refs.root.clientWidth);
     this.svgHeight = Math.floor(this.$refs.root.clientHeight);
-    this.$bus.$on('threshold-selected', d =>{
-      
-    })
+    this.svg = d3.select(this.$refs.root).append('svg')
+        .attr('width', this.svgWidth)
+        .attr('height', this.svgHeight)
   }
 };
 </script>

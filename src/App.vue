@@ -75,7 +75,17 @@ export default {
   },
   computed: {
     barChartData() {
-      return this.badDeps ? this.badDeps.map(d => ({ type: d.type, num: d.paths.length })) : null
+      let data = []
+      if(this.badDeps){
+        this.badDeps.forEach(d => {
+           data.push({type: d.type, num: d.paths.length})
+        })
+        if(this.filteredCoordinates)
+          data[0].num = this.filteredCoordinates.length
+        return data
+      }
+      else
+       return null
     }
   },
   methods: {
@@ -151,7 +161,7 @@ export default {
         // 暂无参数
       }).then(({data}) =>{
         this.coordinates = data
-        console.log('coordinates', this.coordinates)
+        // console.log('coordinates', this.coordinates)
       })
     },
     genRelPath(path) {

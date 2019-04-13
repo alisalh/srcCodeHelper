@@ -26,7 +26,7 @@ export default {
       },
       legendInnerPadding: 3,
       legendOuterPadding: 20,
-      lenTreshold: 22,
+      lenTreshold: 0,
       typeStatus: [true, true, true], //indicates whether corresponding type(dep link and rect style) is visible or not
       depLinkGroupG: null,
       longestDepLen: 99999,
@@ -208,7 +208,7 @@ export default {
         for (let dep of this.badDeps) {
           let type = dep.type,
             paths = dep.paths,
-            filteredDeps = paths.filter(d => d.path.indexOf(fileName) !== -1)  //筛选包含此文件的路径
+            filteredDeps = paths.filter(d => d.path.indexOf(fileName) !== -1 && d.path.length >= this.lenTreshold)  //筛选包含此文件的路径
           stackItem[`${type}-paths`] = filteredDeps
           stackItem[`${type}-count`] = Math.log(filteredDeps.length+1)
         }
@@ -227,6 +227,7 @@ export default {
         .innerRadius(function(d) { return y(d[0]) })
         .outerRadius(function(d) { return y(d[1]) });
 
+      this.centerSvg.select('.radial-stack').remove()
       let seiresG = this.centerSvg.append("g")
         .attr("class", "radial-stack")
         .selectAll("g").data(series).enter().append('g').attr("class", 'seires')
@@ -269,6 +270,10 @@ export default {
     d3.select(".dep-hell-wrapper svg").attr("width", this.svgWidth).attr("height", this.svgHeight)
       .append("g").attr("class", "center-g")
       .attr("transform", "translate(" + this.svgWidth / 2 + "," + (this.svgHeight / 2) + ")")
+    this.$bus.$on('threshold-selected', d =>{
+      this.lenTreshold = d
+      this.drawRadialStack()
+    })
   }
 }
 
