@@ -4,6 +4,7 @@
 </template>
 <script type="text/javascript">
 import * as d3 from 'd3'
+
 export default {
   data() {
     return {
@@ -11,11 +12,11 @@ export default {
       svg: null,
       nodes: null,
       links: null,
-      defaultR: 4,
+      defaultR: 5,
       svgWidth: 0,
       svgHeight: 0,
       depData: null,
-      color: '#bababa'
+      color: '#fff5e2'
     }
   },
   props:['badDeps', 'filesInfo', 'filesDist'],
@@ -70,22 +71,32 @@ export default {
       // console.log(d3.select(this.$refs.root).selectAll('svg *'))
       let vm = this
 
+      var simulation
       // 小于200表示vue
       if(this.graphData.nodes.length < 200){
-        var simulation = d3.forceSimulation()
-        .force("link", d3.forceLink().id(function(d) { return d.id; }))
-        .force("charge", d3.forceManyBody().strength(-300).distanceMin(20).distanceMax(100))
-        .force("center", d3.forceCenter(this.svgWidth / 2, this.svgHeight / 2))
+        simulation = d3.forceSimulation()
+          .force("link", d3.forceLink().id(function(d) { return d.id; }))
+          .force("charge", d3.forceManyBody().strength(-200).distanceMin(30).distanceMax(100))
+          .force("center", d3.forceCenter(this.svgHeight  / 2, this.svgWidth/ 2 - 140))
+          .force('collision', d3.forceCollide().radius(function(d) { return 10 }))
       }
       else{
-         var simulation = d3.forceSimulation()
-        .force("link", d3.forceLink().id(function(d) { return d.id; }))
-        .force("charge", d3.forceManyBody().strength(-110).distanceMin(20).distanceMax(60))
-        .force("center", d3.forceCenter(this.svgWidth / 2, this.svgHeight / 2))
+        simulation = d3.forceSimulation()
+          .force("link", d3.forceLink().id(function(d) { return d.id }))
+          .force("charge", d3.forceManyBody().strength(-100).distanceMin(20).distanceMax(80))
+          .force("center", d3.forceCenter(this.svgHeight / 2 - 20, this.svgWidth / 2 - 140  ))
+          .force('collision', d3.forceCollide().radius(function(d) { return 10 }))
       }
 
+      simulation
+        .nodes(this.graphData.nodes)
+        .on("tick", ticked);
+
+      simulation.force("link")
+        .links(this.graphData.links)
+
       // 颜色色卡
-      var a = d3.rgb(0,60,48), b = d3.rgb(128,205,193)
+      var a = d3.rgb(165,0,38), b = d3.rgb(253,174,97)
       var compute = d3.interpolate(a, b)
       function up(x, y) {return x.val -y.val}
 
@@ -94,16 +105,44 @@ export default {
         .selectAll("line")
         .data(this.graphData.links)
         .enter().append("line")
-        .attr("stroke", d =>this.color)
-        .attr("stroke-width", d => {
-          for(let i=0; i< this.graphData.links.length; i++){
-            if((this.graphData.links[i].source === d.target)
-              &&(this.graphData.links[i].target === d.source))
-               return 3
-          }
-            return 1
+        .style("stroke", (d, i) =>{
+          let linearGradient = this.svg.append('defs')
+            .append('linearGradient')
+            .attr('id', 'linear-gradient'+i)
+            .attr('gradientUnits','userSpaceOnUse')
+            .attr('x1', boundX(d.source.y))
+            .attr('y1', boundY(d.source.x))
+            .attr('x2', boundX(d.target.y))
+            .attr('y2', boundY(d.target.x))
+          // for(let i=0; i< this.graphData.links.length; i++){
+          //   if((this.graphData.links[i].source === d.target)
+          //     &&(this.graphData.links[i].target === d.source)){
+          //      return '#525252'
+          //   }
+          // }
+          linearGradient.append('stop')
+            .attr('offset', '0%')
+            .attr('stop-color', '#d9d9d9')
+          linearGradient.append('stop')
+            .attr('offset', '33%')
+            .attr('stop-color', '#d9d9d9')
+          linearGradient.append('stop')
+            .attr('offset', '66%')
+            .attr('stop-color', '#525252')
+          linearGradient.append('stop')
+            .attr('offset', '100%')
+            .attr('stop-color', '#525252')
+          return 'url(#linear-gradient'+i+')'
         })
-        .attr('stroke-opacity', 0.5);
+        .attr('stroke-opacity', 0.5)
+        .attr("stroke-width", d => {
+          // for(let i=0; i< this.graphData.links.length; i++){
+          //   if((this.graphData.links[i].source === d.target)
+          //     &&(this.graphData.links[i].target === d.source))
+          //       return 3
+          // }
+          return 1
+        })
 
       this.nodes = this.svg.append("g")
         .attr("class", "nodes")
@@ -112,6 +151,7 @@ export default {
         .enter().append("circle")
         .attr("r", this.defaultR)
         .attr("fill", this.color)
+        .attr('stroke', '#bdbdbd')
         .on('click', (d) => {
           resetState()
           // 点击节点显示相似节点
@@ -131,10 +171,10 @@ export default {
           })
           d3.event.stopPropagation()
         })
-        .call(d3.drag()
-          .on("start", dragstarted)
-          .on("drag", dragged)
-          .on("end", dragended));
+        // .call(d3.drag()
+        //   .on("start", dragstarted)
+        //   .on("drag", dragged)
+        //   .on("end", dragended))
       
       this.svg.on('click', ()=>{
         resetState()
@@ -142,34 +182,54 @@ export default {
       this.nodes.append("title")
         .text(function(d) { return d.id; })
 
-      simulation
-        .nodes(this.graphData.nodes)
-        .on("tick", ticked);
-
-      simulation.force("link")
-        .links(this.graphData.links);
-
+      function boundX(d){
+        if(d < 0)
+          d = 10
+        if(d > vm.svgWidth)
+          d = vm.svgWidth - 10
+        return d
+      }
+      function boundY(d){
+        if(d < 0)
+          d = 10
+        if(d > vm.svgHeight)
+          d = vm.svgHeight - 10
+        return d
+      }
       function ticked() {
         vm.links
-          .attr("x1", function(d) { return d.source.x; })
-          .attr("y1", function(d) { return d.source.y; })
-          .attr("x2", function(d) { return d.target.x; })
-          .attr("y2", function(d) { return d.target.y; });
-
+          .attr("x1", function(d) { return boundX(d.source.y) })
+          .attr("y1", function(d) { return boundY(d.source.x) })
+          .attr("x2", function(d) { return boundX(d.target.y) })
+          .attr("y2", function(d) { return boundY(d.target.x) })
+          .style("stroke", (d, i) =>{
+            // for(let i=0; i< vm.graphData.links.length; i++){
+            //   if((vm.graphData.links[i].source === d.target)
+            //     &&(vm.graphData.links[i].target === d.source)){
+            //     return '#525252'
+            //   }
+            // }
+            vm.svg.select('#linear-gradient'+i)
+              .attr('x1', boundX(d.source.y))
+              .attr('y1', boundY(d.source.x))
+              .attr('x2', boundX(d.target.y))
+              .attr('y2', boundY(d.target.x))
+            return 'url(#linear-gradient'+i+')'
+        })
         vm.nodes
-          .attr("cx", function(d) { return d.x; })
-          .attr("cy", function(d) { return d.y; });
+          .attr("cx", function(d) { return boundX(d.y) })
+          .attr("cy", function(d) { return boundY(d.x) });
       }
 
       function dragstarted(d) {
         if (!d3.event.active) simulation.alphaTarget(0.3).restart();
-        d.fx = d.x;
-        d.fy = d.y;
+        d.fx = d.x
+        d.fy = d.y
       }
 
       function dragged(d) {
-        d.fx = d3.event.x;
-        d.fy = d3.event.y;
+        d.fx = d3.event.x
+        d.fy = d3.event.y
       }
 
       function dragended(d) {

@@ -1,5 +1,5 @@
 <template>
-  <div class="dep-hell bl-card-shadow" ref="root">
+  <div class="dep-hell-wrapper bl-card-shadow" ref="root">
     <svg ref="svg">
       <!-- <g class="legend-wrapper" :style="{transform:`translateX(${(svgWidth-legendWrapperWidth)/2}px)`}">
         <g :style="{transform:`translate(${idx*(legend.width+legendLabelLen+20)}px,20px)`}" v-for="(val,key,idx) in colorMap">
@@ -238,8 +238,8 @@ export default {
 
     },
     initSvg() {
-      this.svg = d3.select(".dep-hell svg")
-      this.centerSvg = d3.select(".dep-hell svg .center-g")
+      this.svg = d3.select(".dep-hell-wrapper svg")
+      this.centerSvg = d3.select(".dep-hell-wrapper svg .center-g")
     }
   },
   watch: {
@@ -266,7 +266,7 @@ export default {
     this.svgWidth = Math.floor(this.$refs.root.clientWidth)
     this.svgHeight = Math.floor(this.$refs.root.clientHeight)
     // Todo:目前需要手动减10
-    d3.select(".dep-hell svg").attr("width", this.svgWidth).attr("height", this.svgHeight)
+    d3.select(".dep-hell-wrapper svg").attr("width", this.svgWidth).attr("height", this.svgHeight)
       .append("g").attr("class", "center-g")
       .attr("transform", "translate(" + this.svgWidth / 2 + "," + (this.svgHeight / 2) + ")")
   }
@@ -274,7 +274,7 @@ export default {
 
 </script>
 <style type="text/css" lang="scss">
-.dep-hell {
+.dep-hell-wrapper {
   .legend-wrapper {
     rect.disabled-type {
       fill: grey;

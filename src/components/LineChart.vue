@@ -114,6 +114,7 @@ export default {
             .attr('d', area(this.chartData.filter(len => len[0] >= d[0])))
             .attr('fill', 'steelblue')
             .attr('opacity', 0.5)
+            this.$bus.$emit('threshold-selected', d[0])
         })
     }
   }

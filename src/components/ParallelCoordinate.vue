@@ -40,7 +40,7 @@ export default {
       function path(d) {
         return line(that.dimensions.map(function(dim) { return [x(dim), that.y[dim](d[dim])]; }));
       }
-      var margin = { top: 50, right: 0, bottom: 30, left: 0 },
+      var margin = { top: 40, right: 0, bottom: 30, left: 0 },
         width = this.svgWidth - margin.left - margin.right,
         height = this.svgHeight - margin.top - margin.bottom;
 

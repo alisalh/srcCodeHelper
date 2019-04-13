@@ -15,6 +15,7 @@ export default {
   watch: {
     chartData(val) {
       if (val) {
+        console.log(val)
         this.draw();
       }
     }
@@ -86,6 +87,9 @@ export default {
   mounted() {
     this.svgWidth = Math.floor(this.$refs.root.clientWidth);
     this.svgHeight = Math.floor(this.$refs.root.clientHeight);
+    this.$bus.$on('threshold-selected', d =>{
+      
+    })
   }
 };
 </script>

@@ -6,9 +6,9 @@
         </line-chart>
         <bar-chart :chartData="barChartData" :colorMap="colorMap"></bar-chart>
       </div>
-      <dep-hell-wrapper :root="treeRoot" :badDeps="badDeps" class="dep-hell-wrapper" :colorMap="colorMap">
+      <dep-hell-wrapper :root="treeRoot" :badDeps="badDeps" :colorMap="colorMap">
       </dep-hell-wrapper>
-      <div class='scatter bl-card-shadow'></div>
+      <scatter-plot></scatter-plot>
     </div>
     <div class="center-panel column">
       <div class="first-row bl-card-shadow">
@@ -34,6 +34,7 @@ import Partition from './components/Partition.vue'
 import LineChart from './components/LineChart.vue'
 import BarChart from './components/BarChart.vue'
 import CodeChart from './components/CodeChart.vue'
+import ScatterPlot from './components/ScatterPlot.vue'
 import Test from './components/test.vue'
 
 export default {
@@ -48,6 +49,7 @@ export default {
     LineChart,
     BarChart,
     CodeChart,
+    ScatterPlot,
     Test
   },
   data() {
@@ -58,6 +60,7 @@ export default {
       filesInfo: null,
       filesDist: null,
       filesList: null,
+      pathsCluster: null,
       dependedData: null,
       dependingData: null,
       lenDis: null,
@@ -235,7 +238,7 @@ html {
       flex: 4;
       margin-bottom: 3px;
     }
-    .scatter{
+    .scatter-plot{
       flex: 3;
     }
   }
@@ -249,7 +252,7 @@ html {
       margin-bottom: 3px;
     }
     .second-row {
-      flex: 1.3;
+      flex: 1.2;
     } 
   }
   .right-panel{
