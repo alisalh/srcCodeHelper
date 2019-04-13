@@ -8,7 +8,7 @@
       </div>
       <dep-hell-wrapper :root="treeRoot" :badDeps="badDeps" :colorMap="colorMap">
       </dep-hell-wrapper>
-      <scatter-plot></scatter-plot>
+      <scatter-plot :filteredCoordinates="filteredCoordinates"></scatter-plot>
     </div>
     <div class="center-panel column">
       <div class="first-row bl-card-shadow">
@@ -60,7 +60,8 @@ export default {
       filesInfo: null,
       filesDist: null,
       filesList: null,
-      pathsCluster: null,
+      coordinates: null,
+      filteredCoordinates: null,
       dependedData: null,
       dependingData: null,
       lenDis: null,
@@ -145,6 +146,14 @@ export default {
         this.filesDist = data
       })
     },
+    getCoordinates(){
+      this.$axios.get('files/getCoordinates', {
+        // 暂无参数
+      }).then(({data}) =>{
+        this.coordinates = data
+        console.log('coordinates', this.coordinates)
+      })
+    },
     genRelPath(path) {
       // let match = path.match(/E:\/Workspace\/Visualization\/srcCodeHelperServer\/data\/vue\/src\/(.*)/)
       // return match ? match[2] : path
@@ -185,19 +194,36 @@ export default {
       let treeRoot = d3.hierarchy(root)
       treeRoot.sum(function(d) { return !d.children ? 1 : 0; });
       return d3.partition()(treeRoot)
+    },
+    filterBadDeps(val){
+      this.filteredCoordinates = []
+      this.badDeps[0].paths.forEach(path => {
+        if(path.len >= val)
+          this.filteredCoordinates.push(this.coordinates[path.id])
+      })
+      this.badDeps[1].paths.forEach(path => {
+        this.filteredCoordinates.push(this.coordinates[path.id])
+      })
+      this.badDeps[2].paths.forEach(path => {
+        this.filteredCoordinates.push(this.coordinates[path.id])
+      })
     }
   },
   mounted() {
-    this.$bus.$on('file-select', d => this.selectedFileName = d)
-    this.$bus.$on('draw-partition', (selectedFile) => {
-      // 有问题需改
-      this.partitionDataAdapter(selectedFile)
+    // this.$bus.$on('file-select', d => this.selectedFileName = d)
+    // this.$bus.$on('draw-partition', (selectedFile) => {
+    //   // 有问题需改
+    //   this.partitionDataAdapter(selectedFile)
+    // })
+    this.$bus.$on('threshold-selected', d =>{
+      this.filterBadDeps(d)
     })
     this.getFilesList()
     this.getFolderHierarchy()
     this.getDepsInfo()
     this.getFilesInfo()
     this.getFilesDist()
+    this.getCoordinates()
   }
 }
 

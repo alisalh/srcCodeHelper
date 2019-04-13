@@ -7,36 +7,34 @@ import * as d3 from 'd3'
 export default {
   data() {
     return {
-        height: null,
-        width: null,
+        svgHeight: null,
+        svgWidth: null,
         xScale: null,
-        yScale: null
-      
+        yScale: null, 
+        scatterData: null,
+        svg: null
     }
   },
-  props:[],
+  props:['filteredCoordinates'],
   methods: {
-      draw(){
+      draw(data){
+          d3.select(this.$refs.root).selectAll('svg *').remove()
         const margin ={top: 10, right: 20, bottom: 10, left: 20},
-            height = this.height,
-            width = this.width
-        const svg = d3.select(this.$refs.root)
-            .append('svg')
-            .attr('width', width)
-            .attr('height', height)
+            height = this.svgHeight,
+            width = this.svgWidth
         const x = d3
             .scaleLinear()
-            .domain(d3.extent(data, d => d.x))
+            .domain(d3.extent(data, d => parseFloat(d.x)))
             .nice()
             .range([margin.left, width - margin.right])
         this.xScale = x
         const y = d3
             .scaleLinear()
-            .domain(d3.extent(data, d => d.y))
+            .domain(d3.extent(data, d => parseFloat(d.y)))
             .nice()
             .range([height - margin.bottom, margin.top])
         this.yScale = y
-        var circle = svg
+        var circle = this.svg
             .append('g')
             .selectAll('.marker')
             .data(data)
@@ -44,15 +42,42 @@ export default {
             .append('circle')
             .attr('class', 'marker')
             .attr('r', 3.5)
-            .attr('cx', d => x(d.x))
-            .attr('yy', d => y(d.y))
+            .attr('cx', d => x(parseFloat(d.x)))
+            .attr('cy', d => y(parseFloat(d.y)))
+            .attr('stroke', '#bdbdbd')
+            .attr('fill', '#fff5e2')
+            .on('mouseenter', d => {
+                console.log(d.id)
+            })
       }
   },
-  mounted(){
-      this.height = Math.floor(this.$refs.root.clientHeight)
-      this.width = Math.floor(this.$refs.root.clientWidth)
-
-  }
+//   created(){
+//     const requiredData = ['coordinates']
+//         let cnt = 0
+//         requiredData.forEach(d => {
+//         this.$watch(d, val => {
+//             if(val) cnt++
+//             if(cnt === requiredData.length) {
+               
+//             }
+//         })
+//     })
+//   },
+    watch:{
+        filteredCoordinates(val){
+            if(val){
+                this.scatterData = this.filteredCoordinates
+                this.draw(this.scatterData)
+            }
+        }
+    },
+    mounted(){
+        this.svgHeight = Math.floor(this.$refs.root.clientHeight)
+        this.svgWidth = Math.floor(this.$refs.root.clientWidth)
+        this.svg = d3.select(this.$refs.root).append("svg")
+            .attr("width", this.svgWidth)
+            .attr("height", this.svgHeight)
+    }
 }
 
 </script>
