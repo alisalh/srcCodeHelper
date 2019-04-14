@@ -26,7 +26,6 @@ import * as d3 from 'd3'
 export default {
   data() {
     return {
-      graphData: {},
       svg: null,
       nodes: null,
       links: null,
@@ -41,49 +40,8 @@ export default {
       isSelected: false
     }
   },
-  props:['badDeps', 'filesInfo', 'filesDist'],
+  props:['graphData', 'filesDist'],
   methods: {
-    dataAdapter() {
-      this.depData = []
-      let longPaths = this.badDeps[0].paths,
-        indirectPaths = this.badDeps[1].paths,
-        directPaths = this.badDeps[2].paths
-      let num = 0
-      longPaths.forEach(item => {
-        item.id = num
-        this.depData.push(item)
-        num += 1
-      })
-      indirectPaths.forEach(item => {
-        item.id = num
-        this.depData.push(item)
-        num += 1
-      })
-      directPaths.forEach(item => {
-        item.id = num
-        this.depData.push(item)
-        num += 1
-      })
-      let nodes = new Set(),
-        links = new Set()
-      this.depData.forEach(d => {
-        for (let i = 0; i < d.path.length - 1; i++) {
-          nodes.add(d.path[i]) //add node
-          links.add(d.path[i] + '|' + d.path[i + 1]) //add link('|' is used as conjunction to connect the two nodes)
-        }
-        //we need to connect the last node and the first node in type 'indirect'
-        // if (d.type === 'indirect')
-        //   links.add(d.path[d.path.length - 1] + '|' + d.path[0])
-        nodes.add(d.path[d.path.length - 1]) // do not miss the last node
-      })
-      this.graphData.nodes = [...nodes].map(d => ({ 
-        id: d, 
-        fileid: this.filesInfo.filter(file => file.name === d)[0].id}))
-      this.graphData.links = [...links].map(function(d) {
-      let parts = d.split('|')
-        return { source: parts[0], target: parts[1] }
-      })
-    },
     resetAllStyle() {
       this.nodes.attr("stroke-dasharray", null).attr("r", this.defaultR)
       this.links.attr("stroke-dasharray", null)
@@ -96,14 +54,14 @@ export default {
       // 小于200表示vue
       if(this.graphData.nodes.length < 200){
         simulation = d3.forceSimulation()
-          .force("link", d3.forceLink().id(function(d) { return d.id; }))
+          .force("link", d3.forceLink().id(function(d) { return d.fileid; }))
           .force("charge", d3.forceManyBody().strength(-200).distanceMin(30).distanceMax(100))
           .force("center", d3.forceCenter(this.svgHeight  / 2, this.svgWidth/ 2))
           .force('collision', d3.forceCollide().radius(function(d) { return 10 }))
       }
       else{
         simulation = d3.forceSimulation()
-          .force("link", d3.forceLink().id(function(d) { return d.id }))
+          .force("link", d3.forceLink().id(function(d) { return d.fileid }))
           .force("charge", d3.forceManyBody().strength(-100).distanceMin(20).distanceMax(80))
           .force("center", d3.forceCenter(this.svgHeight / 2 - 20, this.svgWidth / 2))
           .force('collision', d3.forceCollide().radius(function(d) { return 5 }))
@@ -135,12 +93,6 @@ export default {
             .attr('y1', boundY(d.source.x))
             .attr('x2', boundX(d.target.y))
             .attr('y2', boundY(d.target.x))
-          // for(let i=0; i< this.graphData.links.length; i++){
-          //   if((this.graphData.links[i].source === d.target)
-          //     &&(this.graphData.links[i].target === d.source)){
-          //      return '#525252'
-          //   }
-          // }
           linearGradient.append('stop')
             .attr('offset', '0%')
             .attr('stop-color', '#d9d9d9')
@@ -155,13 +107,7 @@ export default {
             .attr('stop-color', '#525252')
           return 'url(#linear-gradient'+i+')'
         })
-        // .attr('stroke-opacity', 0.5)
         .attr("stroke-width", d => {
-          // for(let i=0; i< this.graphData.links.length; i++){
-          //   if((this.graphData.links[i].source === d.target)
-          //     &&(this.graphData.links[i].target === d.source))
-          //       return 3
-          // }
           return 0.3
         })
 
@@ -201,29 +147,21 @@ export default {
           }
           d3.event.stopPropagation()
 
-          // 子图数据
-          var subGraphData = {}
-          subGraphData.links = this.graphData.links
-            .filter(link => link.source.id === d.id || link.target.id === d.id)
-            .map(function(d) { return {source: d.source.id, target: d.target.id} })
-          var nodes = new Set()
-          subGraphData.links.forEach(link =>{
-            nodes.add(link.source)
-            nodes.add(link.target)
+          // 绘制子图
+          this.$axios.get('files/getSubGraphData', {
+            fileid: d.fileid
+          }).then(({ data }) => {
+            var subGraphData = data.subGraph
+            if(!this.isSelected){
+              // 未选择节点时绘制selected nodes
+              this.drawSubGraph('selected', subGraphData)
+              this.isSelected = true
+            }
+            else{
+              // 已选中节点时绘制compared nodes
+              this.drawSubGraph('compared', subGraphData)
+            }
           })
-          subGraphData.nodes = [...nodes].map(node => ({ 
-            id: node, 
-            fileid: this.filesInfo.filter(file => file.name === node)[0].id}))
-          
-          if(!this.isSelected){
-            // 未选择节点时绘制selected nodes
-            this.drawSubGraph('selected', subGraphData)
-            this.isSelected = true
-          }
-          else{
-            // 已选中节点时绘制compared nodes
-            this.drawSubGraph('compared', subGraphData)
-          }
           
         })
         // .call(d3.drag()
@@ -305,7 +243,7 @@ export default {
       var g = subSvg.append('g')
         .attr('class', 'subgraph')
       var simulation = d3.forceSimulation()
-          .force("link", d3.forceLink().id(function(d) { return d.id; }))
+          .force("link", d3.forceLink().id(function(d) { return d.fileid; }))
           .force("center", d3.forceCenter(this.subSvgWidth  / 2, this.subSvgHeight / 2))
           .force("charge", d3.forceManyBody().strength(-200).distanceMin(100).distanceMax(150))
           .force('collision', d3.forceCollide().radius(function(d) { return 10 }))
@@ -378,13 +316,12 @@ export default {
     // }
   },
   created() {
-    const requiredData = ['badDeps', 'filesInfo', 'filesDist']
+    const requiredData = ['graphData', 'filesDist']
     let cnt = 0
     requiredData.forEach(d => {
       this.$watch(d, val => {
         if(val) cnt++
         if(cnt === requiredData.length) {
-          this.dataAdapter()
           this.draw()
         }
       })

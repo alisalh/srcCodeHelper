@@ -11,7 +11,6 @@ export default {
         svgWidth: null,
         xScale: null,
         yScale: null, 
-        scatterData: null,
         svg: null
     }
   },
@@ -51,32 +50,20 @@ export default {
             })
       }
   },
-//   created(){
-//     const requiredData = ['coordinates']
-//         let cnt = 0
-//         requiredData.forEach(d => {
-//         this.$watch(d, val => {
-//             if(val) cnt++
-//             if(cnt === requiredData.length) {
-               
-//             }
-//         })
-//     })
-//   },
-    watch:{
-        filteredCoordinates(val){
-            if(val){
-                this.scatterData = this.filteredCoordinates
-                this.draw(this.scatterData)
-            }
-        }
-    },
     mounted(){
         this.svgHeight = Math.floor(this.$refs.root.clientHeight)
         this.svgWidth = Math.floor(this.$refs.root.clientWidth)
         this.svg = d3.select(this.$refs.root).append("svg")
             .attr("width", this.svgWidth)
             .attr("height", this.svgHeight)
+        this.$bus.$on('threshold-selected', d =>{
+            this.$axios.get('files/getCoordinates', {
+                len: d
+            }).then(({ data }) => {
+                console.log(data)
+                this.draw(data)
+            })
+        })
     }
 }
 

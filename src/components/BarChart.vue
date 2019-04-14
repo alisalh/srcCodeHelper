@@ -9,21 +9,13 @@ export default {
     return {
       svgWidth: null,
       svgHeight: null,
-      svg: null
+      svg: null,
+      threshold: null
     };
   },
-  props: ["chartData", "colorMap"],
-  watch: {
-    chartData(val) {
-      if (val) {
-        console.log(val)
-        this.draw();
-      }
-    }
-  },
+  props: ["colorMap"],
   methods: {
-    draw() {
-      console.log("bar draw");
+    draw(data) {
       d3.select(".bar-chart>svg *").remove();
       var margin = { top: 0, right: 40, bottom: 10, left: 60},
         width = this.svgWidth - margin.left - margin.right,
@@ -42,13 +34,13 @@ export default {
         x = d3.scaleLinear().rangeRound([0, width-20]);
 
       y.domain(
-        this.chartData.map(function(d) {
+        data.map(function(d) {
           return d.type;
         })
       );
       x.domain([
         0,
-        d3.max(this.chartData, function(d) {
+        d3.max(data, function(d) {
           return Math.log(d.num+1);
         })
       ]);
@@ -59,7 +51,7 @@ export default {
         .call(g => g.select('.domain').remove())
 
       let barG = g.selectAll(".bar")
-        .data(this.chartData)
+        .data(data)
         .enter()
         .append('g')
       barG.append("rect")
@@ -82,12 +74,27 @@ export default {
         .attr('font-size', 12)
     }
   },
+  watch: {
+    threshold(val){
+      if(val || val === 0){
+        this.$axios.get('files/getBarData', {
+          threshold: val
+        }).then(({ data }) => {
+          this.draw(data)
+        })
+      }
+    }
+  },
   mounted() {
     this.svgWidth = Math.floor(this.$refs.root.clientWidth);
     this.svgHeight = Math.floor(this.$refs.root.clientHeight);
     this.svg = d3.select(this.$refs.root).append('svg')
-        .attr('width', this.svgWidth)
-        .attr('height', this.svgHeight)
+      .attr('width', this.svgWidth)
+      .attr('height', this.svgHeight)
+    this.threshold = 0
+    this.$bus.$on('threshold-selected', d =>{
+      this.threshold = d
+    })
   }
 };
 </script>

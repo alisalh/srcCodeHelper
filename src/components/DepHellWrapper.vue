@@ -35,7 +35,7 @@ export default {
       fileDepInfo: null // store dep info for each file
     }
   },
-  props: ['root', 'badDeps', 'colorMap'],
+  props: ['root', 'colorMap'],
   updated() {
     console.log("dephellwrapper updated")
     console.log('root in dephell updated')
@@ -273,15 +273,15 @@ export default {
           return 0
       })
     },
-    badDeps(val) {
-      if (val) {
-        this.initSvg()
-        // this.drawDendrogram()
-        this.drawHierachy()
-        this.drawRadialStack()
-        // this.drawDepLinks()
-      }
-    }
+    // badDeps(val) {
+    //   if (val) {
+    //     this.initSvg()
+    //     // this.drawDendrogram()
+    //     this.drawHierachy()
+    //     // this.drawRadialStack()
+    //     // this.drawDepLinks()
+    //   }
+    // }
   },
   mounted() {
     this.svgWidth = Math.floor(this.$refs.root.clientWidth)
@@ -292,7 +292,7 @@ export default {
       .attr("transform", "translate(" + this.svgWidth / 2 + "," + (this.svgHeight / 2) + ")")
     this.$bus.$on('threshold-selected', d =>{
       this.lenTreshold = d
-      this.drawRadialStack()
+      // this.drawRadialStack()
     })
   }
 }

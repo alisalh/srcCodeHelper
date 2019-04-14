@@ -4,15 +4,15 @@
       <div class='control-panel bl-card-shadow'>
         <line-chart :lenDis="lenDis" :lenThreshold='lenThreshold' :maxLen='maxLen'>
         </line-chart>
-        <bar-chart :chartData="barChartData" :colorMap="colorMap"></bar-chart>
+        <bar-chart :colorMap="colorMap"></bar-chart>
       </div>
-      <dep-hell-wrapper :root="treeRoot" :badDeps="badDeps" :colorMap="colorMap">
+      <dep-hell-wrapper :root="treeRoot" :colorMap="colorMap">
       </dep-hell-wrapper>
-      <scatter-plot :filteredCoordinates="filteredCoordinates"></scatter-plot>
+      <scatter-plot :coordinates="coordinates"></scatter-plot>
     </div>
     <div class="center-panel column">
       <div class="first-row bl-card-shadow">
-        <dep-path :badDeps="badDeps" :filesInfo="filesInfo" :filesDist="filesDist"></dep-path>
+        <dep-path :graphData="graphData" :filesDist="filesDist"></dep-path>
       </div>
       <div class="second-row bl-card-shadow">
         <parallel-coordinate :filesInfo="filesInfo" class='parallel-coordinate'></parallel-coordinate>
@@ -56,12 +56,11 @@ export default {
     return {
       selectedFileName: 'None',
       treeRoot: null,
-      badDeps: null,
       filesInfo: null,
       filesDist: null,
       filesList: null,
+      graphData: null,
       coordinates: null,
-      filteredCoordinates: null,
       dependedData: null,
       dependingData: null,
       lenDis: null,
@@ -72,21 +71,6 @@ export default {
   },
   updated() {
     console.log('app updated');
-  },
-  computed: {
-    barChartData() {
-      let data = []
-      if(this.badDeps){
-        this.badDeps.forEach(d => {
-           data.push({type: d.type, num: d.paths.length})
-        })
-        if(this.filteredCoordinates)
-          data[0].num = this.filteredCoordinates.length
-        return data
-      }
-      else
-       return null
-    }
   },
   methods: {
     // 通过slider改变len阈值时，重新向后台请求数据
@@ -107,31 +91,16 @@ export default {
         libName:'vue'
       }).then(({ data }) => {
         let treeRoot = d3.hierarchy(data.root);
-        // treeRoot.descendants().forEach((d) => {
-        //   // 提取相对路径
-        //   d.data.name = this.genRelPath(d.data.name)
-        // })
-        // treeRoot.sum(function(d) { return !d.children && d.fileInfo && d.fileInfo.size ? 1 : 0; });
         treeRoot.sum(function(d) {return !d.children && d.type==='file' ? 1 : 0;})
         this.treeRoot = treeRoot
       })
     },
-    getDepsInfo(){
-      this.$axios.get('files/getDepsInfo', {
+    getLenDis(){
+      this.$axios.get('files/getLenDis', {
         // 暂无参数
       }).then(({ data }) => {
-        // 提取所有坏依赖的相对路径
-        let badDeps = data.badDeps
-        for (let deps of badDeps) {
-          for (let { path } of deps.paths) {
-            for (let i = 0, len = path.length; i < len; i++) {
-              path[i] = this.filesList[path[i]]
-            }
-          }
-        }
-        this.badDeps = badDeps
         this.lenDis = data.lenDis
-        this.maxLen=badDeps.find(d=>d.type==='long').maxLen
+        this.maxLen= data.maxLen
       })
     },
     getFilesInfo(){
@@ -155,17 +124,12 @@ export default {
         this.filesDist = data
       })
     },
-    getCoordinates(){
-      this.$axios.get('files/getCoordinates', {
+    getGraphData(){
+      this.$axios.get('files/getGraphData', {
         // 暂无参数
       }).then(({data}) =>{
-        this.coordinates = data
-        // console.log('coordinates', this.coordinates)
+        this.graphData = data
       })
-    },
-    genRelPath(path) {
-      // let match = path.match(/E:\/Workspace\/Visualization\/srcCodeHelperServer\/data\/vue\/src\/(.*)/)
-      // return match ? match[2] : path
     },
     partitionDataAdapter(selectedFile) {
       // 深搜查找节点
@@ -203,36 +167,15 @@ export default {
       let treeRoot = d3.hierarchy(root)
       treeRoot.sum(function(d) { return !d.children ? 1 : 0; });
       return d3.partition()(treeRoot)
-    },
-    filterBadDeps(val){
-      this.filteredCoordinates = []
-      this.badDeps[0].paths.forEach(path => {
-        if(path.len >= val)
-          this.filteredCoordinates.push(this.coordinates[path.id])
-      })
-      this.badDeps[1].paths.forEach(path => {
-        this.filteredCoordinates.push(this.coordinates[path.id])
-      })
-      this.badDeps[2].paths.forEach(path => {
-        this.filteredCoordinates.push(this.coordinates[path.id])
-      })
     }
   },
   mounted() {
-    // this.$bus.$on('file-select', d => this.selectedFileName = d)
-    // this.$bus.$on('draw-partition', (selectedFile) => {
-    //   // 有问题需改
-    //   this.partitionDataAdapter(selectedFile)
-    // })
-    this.$bus.$on('threshold-selected', d =>{
-      this.filterBadDeps(d)
-    })
     this.getFilesList()
     this.getFolderHierarchy()
-    this.getDepsInfo()
+    this.getLenDis()
     this.getFilesInfo()
     this.getFilesDist()
-    this.getCoordinates()
+    this.getGraphData()
   }
 }
 
