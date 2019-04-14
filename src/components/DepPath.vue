@@ -1,5 +1,23 @@
 <template>
   <div ref="root" class="dep-path">
+    <div ref="root1" class='main-div'></div>
+    <div class='sub-div'>
+      <div class='empty-div'></div>
+      <div class='subgraph-div'>
+        <div class="header">
+          <div class="title">Selected Node</div>
+          <i class="el-icon-close"></i>
+        </div>
+        <div class='subgraph-content' id='selected' ref='root2'></div>
+      </div>
+      <div class='compared-div'>
+        <div class="header">
+          <div class="title">Compared Node</div>
+          <i class="el-icon-close"></i>
+        </div>
+        <div class='subgraph-content' id='compared'></div>
+      </div> 
+    </div>
   </div>
 </template>
 <script type="text/javascript">
@@ -12,11 +30,15 @@ export default {
       svg: null,
       nodes: null,
       links: null,
-      defaultR: 5,
+      defaultR: 3,
+      depData: null,
+      color: 'grey',
+      subSvg: null,
       svgWidth: 0,
       svgHeight: 0,
-      depData: null,
-      color: '#fff5e2'
+      subSvgWidth: 0,
+      subSvgHeight: 0,
+      isSelected: false
     }
   },
   props:['badDeps', 'filesInfo', 'filesDist'],
@@ -50,8 +72,8 @@ export default {
           links.add(d.path[i] + '|' + d.path[i + 1]) //add link('|' is used as conjunction to connect the two nodes)
         }
         //we need to connect the last node and the first node in type 'indirect'
-        if (d.type === 'indirect')
-          links.add(d.path[d.path.length - 1] + '|' + d.path[0])
+        // if (d.type === 'indirect')
+        //   links.add(d.path[d.path.length - 1] + '|' + d.path[0])
         nodes.add(d.path[d.path.length - 1]) // do not miss the last node
       })
       this.graphData.nodes = [...nodes].map(d => ({ 
@@ -67,25 +89,24 @@ export default {
       this.links.attr("stroke-dasharray", null)
     },
     draw() {
-      d3.select(this.$refs.root).selectAll('svg *').remove()
+      d3.select('.main-div').selectAll('svg *').remove()
       // console.log(d3.select(this.$refs.root).selectAll('svg *'))
       let vm = this
-
       var simulation
       // 小于200表示vue
       if(this.graphData.nodes.length < 200){
         simulation = d3.forceSimulation()
           .force("link", d3.forceLink().id(function(d) { return d.id; }))
           .force("charge", d3.forceManyBody().strength(-200).distanceMin(30).distanceMax(100))
-          .force("center", d3.forceCenter(this.svgHeight  / 2, this.svgWidth/ 2 - 140))
+          .force("center", d3.forceCenter(this.svgHeight  / 2, this.svgWidth/ 2))
           .force('collision', d3.forceCollide().radius(function(d) { return 10 }))
       }
       else{
         simulation = d3.forceSimulation()
           .force("link", d3.forceLink().id(function(d) { return d.id }))
           .force("charge", d3.forceManyBody().strength(-100).distanceMin(20).distanceMax(80))
-          .force("center", d3.forceCenter(this.svgHeight / 2 - 20, this.svgWidth / 2 - 140  ))
-          .force('collision', d3.forceCollide().radius(function(d) { return 10 }))
+          .force("center", d3.forceCenter(this.svgHeight / 2 - 20, this.svgWidth / 2))
+          .force('collision', d3.forceCollide().radius(function(d) { return 5 }))
       }
 
       simulation
@@ -134,14 +155,14 @@ export default {
             .attr('stop-color', '#525252')
           return 'url(#linear-gradient'+i+')'
         })
-        .attr('stroke-opacity', 0.5)
+        // .attr('stroke-opacity', 0.5)
         .attr("stroke-width", d => {
           // for(let i=0; i< this.graphData.links.length; i++){
           //   if((this.graphData.links[i].source === d.target)
           //     &&(this.graphData.links[i].target === d.source))
           //       return 3
           // }
-          return 1
+          return 0.3
         })
 
       this.nodes = this.svg.append("g")
@@ -151,25 +172,59 @@ export default {
         .enter().append("circle")
         .attr("r", this.defaultR)
         .attr("fill", this.color)
-        .attr('stroke', '#bdbdbd')
+        .attr('stroke', 'white')
         .on('click', (d) => {
-          resetState()
-          // 点击节点显示相似节点
-          let dist = this.filesDist.filter(dist => parseInt(dist.id) === d.fileid)[0],
-                obj = [], fileid = [], val = []
-          for(var key in dist)
-            obj.push({key: key, val: dist[key]})
-          obj.sort(up)
-          for(let i=0; i<obj.length/2; i++){
-            fileid.push(parseInt(obj[i].key))
-            val.push(parseFloat(obj[i].val))
+          if(!this.isSelected){
+             resetState()
+            // 点击节点显示相似节点
+            let dist = this.filesDist.filter(dist => parseInt(dist.id) === d.fileid)[0],
+                  obj = [], fileid = [], val = []
+            for(var key in dist)
+              obj.push({key: key, val: dist[key]})
+            obj.sort(up)
+            for(let i=0; i<obj.length/2; i++){
+              fileid.push(parseInt(obj[i].key))
+              val.push(parseFloat(obj[i].val))
+            }
+            var linear = d3.scaleLinear().domain([Math.min(...val), Math.max(...val)]).range([0, 1])
+            fileid.forEach((id, i) =>{
+              this.nodes.filter(node => node.fileid === id)
+                .attr('fill', compute(linear(val[i])))
+                .attr('r', 4)
+            })
+            // 当前点击节点的半径最大
+            this.nodes.filter(node => node.fileid === d.fileid).attr('r', 6)
           }
-          var linear = d3.scaleLinear().domain([Math.min(...val), Math.max(...val)]).range([0, 1])
-          fileid.forEach((d, i) =>{
-            this.nodes.filter(node => node.fileid === d)
-              .attr('fill', compute(linear(val[i])))
-          })
+          else{
+            // 比较节点的stroke上色
+            this.nodes.filter(node => node.fileid === d.fileid).attr('stroke', '#4393c3').attr('stroke-width', 1.5)
+          }
           d3.event.stopPropagation()
+
+          // 子图数据
+          var subGraphData = {}
+          subGraphData.links = this.graphData.links
+            .filter(link => link.source.id === d.id || link.target.id === d.id)
+            .map(function(d) { return {source: d.source.id, target: d.target.id} })
+          var nodes = new Set()
+          subGraphData.links.forEach(link =>{
+            nodes.add(link.source)
+            nodes.add(link.target)
+          })
+          subGraphData.nodes = [...nodes].map(node => ({ 
+            id: node, 
+            fileid: this.filesInfo.filter(file => file.name === node)[0].id}))
+          
+          if(!this.isSelected){
+            // 未选择节点时绘制selected nodes
+            this.drawSubGraph('selected', subGraphData)
+            this.isSelected = true
+          }
+          else{
+            // 已选中节点时绘制compared nodes
+            this.drawSubGraph('compared', subGraphData)
+          }
+          
         })
         // .call(d3.drag()
         //   .on("start", dragstarted)
@@ -185,15 +240,15 @@ export default {
       function boundX(d){
         if(d < 0)
           d = 10
-        if(d > vm.svgWidth)
-          d = vm.svgWidth - 10
+        if(d > vm.width)
+          d = vm.width - 10
         return d
       }
       function boundY(d){
         if(d < 0)
           d = 10
-        if(d > vm.svgHeight)
-          d = vm.svgHeight - 10
+        if(d > vm.height)
+          d = vm.height - 10
         return d
       }
       function ticked() {
@@ -203,12 +258,6 @@ export default {
           .attr("x2", function(d) { return boundX(d.target.y) })
           .attr("y2", function(d) { return boundY(d.target.x) })
           .style("stroke", (d, i) =>{
-            // for(let i=0; i< vm.graphData.links.length; i++){
-            //   if((vm.graphData.links[i].source === d.target)
-            //     &&(vm.graphData.links[i].target === d.source)){
-            //     return '#525252'
-            //   }
-            // }
             vm.svg.select('#linear-gradient'+i)
               .attr('x1', boundX(d.source.y))
               .attr('y1', boundY(d.source.x))
@@ -240,8 +289,85 @@ export default {
 
       function resetState(){
         vm.nodes.attr('fill', vm.color)
+          .attr('r', vm.defaultR)
+          .attr('stroke', 'white')
+          .attr('stroke-width', 1)
+        vm.isSelected = false
+        d3.select('#selected').select('svg').remove()
+        d3.select('#compared').select('svg').remove()
       }
-
+    },
+    drawSubGraph(divID, subGraphData){
+      d3.select('#'+divID).select('svg').remove()
+      var subSvg = d3.select('#'+divID).append("svg")
+        .attr("width", this.subSvgWidth)
+        .attr("height", this.subSvgHeight)
+      var g = subSvg.append('g')
+        .attr('class', 'subgraph')
+      var simulation = d3.forceSimulation()
+          .force("link", d3.forceLink().id(function(d) { return d.id; }))
+          .force("center", d3.forceCenter(this.subSvgWidth  / 2, this.subSvgHeight / 2))
+          .force("charge", d3.forceManyBody().strength(-200).distanceMin(100).distanceMax(150))
+          .force('collision', d3.forceCollide().radius(function(d) { return 10 }))
+      simulation
+        .nodes(subGraphData.nodes)
+        .on("tick", ticked)
+      simulation.force("link")
+        .links(subGraphData.links)
+      var links = g.append("g")
+        .attr("class", "links")
+        .selectAll("line")
+        .data(subGraphData.links)
+        .enter().append("line")
+        .style("stroke", (d, i) =>{
+          let linearGradient = subSvg.append('defs')
+            .append('linearGradient')
+            .attr('id', divID+'linear-gradient'+i)
+            .attr('gradientUnits','userSpaceOnUse')
+            .attr('x1', d.source.x)
+            .attr('y1', d.source.y)
+            .attr('x2', d.target.x)
+            .attr('y2', d.target.y)
+          linearGradient.append('stop')
+            .attr('offset', '0%')
+            .attr('stop-color', '#d9d9d9')
+          linearGradient.append('stop')
+            .attr('offset', '33%')
+            .attr('stop-color', '#d9d9d9')
+          linearGradient.append('stop')
+            .attr('offset', '66%')
+            .attr('stop-color', '#525252')
+          linearGradient.append('stop')
+            .attr('offset', '100%')
+            .attr('stop-color', '#525252')
+          return 'url(#'+divID+'linear-gradient'+i+')'
+        })
+      var nodes = g.append("g")
+        .attr("class", "nodes")
+        .selectAll("circle")
+        .data(subGraphData.nodes)
+        .enter().append("circle")
+        .attr("r", this.defaultR)
+        .attr("fill", this.color)
+        .attr('stroke', 'white')
+      function ticked() {
+        links
+          .attr("x1", function(d) { return d.source.x })
+          .attr("y1", function(d) { return d.source.y })
+          .attr("x2", function(d) { return d.target.x })
+          .attr("y2", function(d) { return d.target.y })
+          .style("stroke", (d, i) =>{
+            subSvg.select('#'+divID+'linear-gradient'+i)
+              .attr('x1', d.source.x)
+              .attr('y1', d.source.y)
+              .attr('x2', d.target.x)
+              .attr('y2', d.target.y)
+            return 'url(#'+divID+'linear-gradient'+i+')'
+          })
+        nodes
+          .attr("cx", function(d) { return d.x })
+          .attr("cy", function(d) { return d.y })
+      }
     }
   },
   watch: {
@@ -258,8 +384,6 @@ export default {
       this.$watch(d, val => {
         if(val) cnt++
         if(cnt === requiredData.length) {
-          console.log('filesInfo', this.filesInfo)
-          console.log('filesDist', this.filesDist)
           this.dataAdapter()
           this.draw()
         }
@@ -270,11 +394,14 @@ export default {
     // console.log('updated')
   },
   mounted() {
-    this.svgWidth = Math.floor(this.$refs.root.clientWidth)
-    this.svgHeight = Math.floor(this.$refs.root.clientHeight)
-    this.svg = d3.select(this.$refs.root).append("svg")
+    this.svgWidth = Math.floor(this.$refs.root1.clientWidth)
+    this.svgHeight = Math.floor(this.$refs.root1.clientHeight)
+    this.svg = d3.select('.main-div').append("svg")
       .attr("width", this.svgWidth)
       .attr("height", this.svgHeight)
+    this.subSvgWidth = Math.floor(this.$refs.root2.clientWidth)
+    this.subSvgHeight = Math.floor(this.$refs.root2.clientHeight)
+
     // this.$bus.$on('highlight-dep', dep => {
     //   if (dep.type !== this.type) return
     //   this.resetAllStyle()
@@ -315,5 +442,45 @@ export default {
 <style type="text/css" lang="scss" scoped>
 .dep-path {
   height: 100%;
+  display: flex;
+  .main-div{
+    flex: 3;
+    width: 100%;
+  }
+  .sub-div{
+    flex: 1;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    .empty-div{
+      flex: 0.5;
+    }
+    .compared-div,.subgraph-div{
+      flex: 1;
+      border: 1px solid lightgray;
+      border-radius: 5px;
+      margin-right: 5px;
+      margin-bottom: 5px;
+      display: flex;
+      flex-direction: column;
+      .header{
+        flex: 1;
+        background-color:rgb(245, 245, 245);
+        font-size: 14px;
+        display: flex;
+        .title{
+          padding: 5px 5px;
+          flex: 9;
+        }
+        .el-icon-close{
+            padding-top: 5px;
+            flex: 1;
+        }
+      }
+      .subgraph-content{
+        flex: 9;
+      }
+    }
+  }
 }
 </style>

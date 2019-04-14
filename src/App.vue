@@ -120,7 +120,6 @@ export default {
       this.$axios.get('files/getDepsInfo', {
         // 暂无参数
       }).then(({ data }) => {
-        console.log('depsInfo', data)
         // 提取所有坏依赖的相对路径
         let badDeps = data.badDeps
         for (let deps of badDeps) {
