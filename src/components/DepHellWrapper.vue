@@ -72,8 +72,8 @@ export default {
       var node = svg.selectAll(".hierarchy-node").data(partition(this.root).descendants().slice(1)).enter().append("g")
       node.append("path")
         .attr("class", "hierarchy-node")
+        .attr('id', (d, i) => 'hierarchy-node-'+i)
         .attr("d", arc)
-        .attr("id", d => d.data.name)
         .style("stroke", d => {
           return 'white'
         })
@@ -81,38 +81,58 @@ export default {
           if (d.data.type === "dir")
             return "#fed9a6"
           return '#e5d8bd' 
-        }).on("click", function(d) {
-          //attach 'id' identifier to each path that belongs to d.data.name
-          let depInfo = vm.fileDepInfo.find(dep => dep.fileName === d.data.name) // depInfo包含信息有：文件路径、三种依赖的数目、三种依赖的paths
-          vm.$bus.$emit('begin-dep-path', Object.assign({ depInfo, colorMap: vm.colorMap }))
-          vm.$bus.$emit('file-select', d.data.name)
+        })
+        .each((d, i) => {
+          var firstArcSection = /(^.+?)L/
+          let curNode = node.select('#hierarchy-node-'+i)
+          var newArc = firstArcSection.exec(curNode.attr('d'))[1]
+          newArc = newArc.replace(/,/g, ' ')
+          if(arc.centroid(d)[1] > 0){
+            var startLoc = /M(.*?)A/,
+              middleLoc = /A(.*?)0 0 1/,
+              endLoc = /0 0 1 (.*?)$/
+            var newStart = endLoc.exec(newArc)[1],
+              newEnd = startLoc.exec(newArc)[1],
+              middleSec = middleLoc.exec(newArc)[1]
+            newArc = 'M' + newStart + 'A' + middleSec + '0 0 0' + newEnd 
+          }
+          node.append('path')
+            .attr('class', 'hiddenDonutArcs')
+            .attr('id', 'donutArc'+i)
+            .attr('d', newArc)
+            .style('fill', 'none')
         })
         .append("title")
         .text((d) => d.data.name)
-  
-      // 添加文字
-      // node.filter(d => d.data.type === "dir").append("text")
-      //   .attr("dy", 13)
-      //   // .attr("dx",30)
-      //   // .attr("dx",d=>document.getElementById(d.data.name.slice(d.data.name.lastIndexOf('\\') + 1)).getTotalLength()/2)
-      //   .append("textPath")
-      //   .attr("href", d => '#' + d.data.name)
-      //   .each(function(d) {
-      //     // console.log(document.getElementById(d.data.name).getTotalLength())
-      //   })
-      //   .text(d => d.data.name.slice(d.data.name.lastIndexOf('/') + 1))
-      //   .each(function(d) {
-      //     //filter visible text
-      //     let maxDim = Math.max(this.getBBox().height, this.getBBox().width),
-      //       visible = maxDim < document.getElementById(d.data.name).getTotalLength() / 4
-      //     /*              console.log(this,this.getBBox().width,document.getElementById(d.data.name).getTotalLength(),d.data.name,this.getBBox().width<document.getElementById(d.data.name).getTotalLength()/4)*/
-      //     if (!visible) {
-      //       // console.log("none")
-      //       d3.select(this).text("")
-      //       // console.log(this.getBBox().width,document.getElementById(d.data.name).getTotalLength(),d.data.name)
-      //     }
-      //   })
 
+        // 添加文字
+        node
+        .append('text')
+        .style('cursor', 'default')
+        .style('font-size', 12+'px')
+        .attr('id', (d, i) => 'text'+i)
+        .attr('dy', function(d, i) { 
+          // vue
+          return (arc.centroid(d)[1] > 0 ? -4 : 12) 
+        })
+        .append('textPath')
+        .attr('startOffset','50%')
+        .style('text-anchor','middle')
+        .attr('xlink:href', (d, i) => '#donutArc'+i)
+        .text(function(d, i){
+          if(d.data.type === 'dir'){
+            let firstArc = (/(^.+?)L/).exec(arc(d))[1]
+            let startPoint = (/M(.*?)A/).exec(firstArc)[1].split(','),
+              endPoint = firstArc.split(',').slice(-2)
+            let distX = startPoint[0]-endPoint[0],
+              distY = startPoint[1]-endPoint[1]
+            let dist = Math.sqrt(distX * distX + distY * distY)
+            let name = d.data.name.substr(d.data.name.lastIndexOf('\\') + 1)
+            if(dist < name.length*10)
+              return '...'
+            else return name
+          }
+        })
     },
     drawDendrogram() {
       let vm = this
@@ -256,7 +276,7 @@ export default {
     badDeps(val) {
       if (val) {
         this.initSvg()
-        this.drawDendrogram()
+        // this.drawDendrogram()
         this.drawHierachy()
         this.drawRadialStack()
         // this.drawDepLinks()
