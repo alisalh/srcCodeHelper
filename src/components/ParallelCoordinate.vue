@@ -21,7 +21,6 @@ export default {
     filesInfo(val) {
       if (val !== null) {
         this.dataAdapter()
-        console.log(this.chartData)
         this.draw()
       }
     }

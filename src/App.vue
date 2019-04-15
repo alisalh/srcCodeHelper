@@ -6,7 +6,7 @@
         </line-chart>
         <bar-chart :colorMap="colorMap"></bar-chart>
       </div>
-      <dep-hell-wrapper :root="treeRoot" :colorMap="colorMap">
+      <dep-hell-wrapper :root="treeRoot" :filesInfo="filesInfo" :colorMap="colorMap">
       </dep-hell-wrapper>
       <scatter-plot :coordinates="coordinates"></scatter-plot>
     </div>
@@ -107,13 +107,6 @@ export default {
        this.$axios.get('files/getFilesInfo', {
         // 暂无参数
       }).then(({ data }) => {
-        // data.forEach(d => {
-        //   // 若是文件，则提取该文件的依赖文件和被依赖文件的相对路径
-        //   d.fileInfo.depended = d.fileInfo.depended.map(dep => Object.assign({},
-        //     dep, { src: this.genRelPath(dep.src) }))
-        //   d.fileInfo.depending = d.fileInfo.depending.map(dep => Object.assign({},
-        //     dep, { src: this.genRelPath(dep.src) }))
-        // })
         this.filesInfo = data
       })
     },

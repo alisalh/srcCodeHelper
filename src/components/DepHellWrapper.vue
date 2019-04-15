@@ -12,13 +12,15 @@ export default {
       svgWidth: null,
       svgHeight: 0,
       lenTreshold: null,
+      dependedData: null,
+      maxDepended: 0, 
       hierarchyHiehgt: 110,
       stackHeight: 30,
       fileDepInfo: null, // store dep info for each file
       centerSvg: null,
     }
   },
-  props: ['root', 'colorMap'],
+  props: ['root', 'filesInfo', 'colorMap'],
   updated() {
     console.log("dephellwrapper updated")
     console.log('root in dephell updated')
@@ -27,6 +29,16 @@ export default {
     dendrogramR() { return Math.min(this.svgWidth, this.svgHeight) / 2 - 130 }
   },
   methods: {
+    dataAdapter(){
+      let maxVal = 0
+      this.dependedData = []
+      for(let i=0; i< this.filesInfo.length; i++) {
+        if(maxVal < this.filesInfo[i].fileInfo.depended)
+          maxVal = this.filesInfo[i].fileInfo.depended
+        this.dependedData.push({fileid: this.filesInfo[i].id, depended: this.filesInfo[i].fileInfo.depended})
+      }
+      this.maxDepended = maxVal
+    },
     drawHierachy() {
       let vm = this
       var formatNumber = d3.format(",d");
@@ -44,6 +56,11 @@ export default {
       var hierarchyG = this.svg.append('g')
         .attr('transform', 'translate(' + this.svgWidth / 2 + ',' + (this.svgHeight / 2) + ')')
 
+      // 颜色色卡
+      var a = d3.rgb(254,227,145), b = d3.rgb(102,37,6)
+      var compute = d3.interpolate(a, b)
+      var linear = d3.scaleLinear().domain([0, this.maxDepended]).range([0, 1])
+      
       //partition the tree and attach additional attr on root as well as its descendants
       var node = hierarchyG.selectAll(".hierarchy-node").data(partition(this.root).descendants().slice(1)).enter().append("g")
       node.append("path")
@@ -56,7 +73,12 @@ export default {
         .style("fill", function(d) {
           if (d.data.type === "dir")
             return "#fed9a6"
-          return '#e5d8bd' 
+          if(d.data.type === 'file' && d.depth === 6){
+            let temp = vm.dependedData.find(item => item.fileid === d.data.id)
+            return compute(linear(temp.depended))
+          }
+          // return '#e5d8bd' 
+          return '#ece4d5'
         })
         .each((d, i) => {
           if(d.data.type === 'dir'){
@@ -157,18 +179,18 @@ export default {
         this.$axios.get('files/getStackData', {
           threshold: val
         }).then(({ data }) => {
-          console.log(data)
           this.drawRadialStack(data)
         })
     },
   },
   created(){
-    const requiredData = ['root']
+    const requiredData = ['root', 'filesInfo']
     let cnt = 0
     requiredData.forEach(d => {
       this.$watch(d, val => {
         if(val) cnt++
         if(cnt === requiredData.length) {
+          this.dataAdapter()
           this.drawHierachy()
           this.lenTreshold = 0
         }
