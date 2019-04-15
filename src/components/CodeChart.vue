@@ -1,17 +1,20 @@
 <template>
-  <div class="code-chart" v-highlight v-html="content">
+  <div class="code-chart">
+    <div class='title'>{{filename}}</div>
+    <div class='content' v-highlight v-html="content"></div>
   </div>
 </template>
 <script type="text/javascript">
 export default {
   data() {
     return {
+      filename: null,
       content: ''
     }
   },
   mounted() {
-    this.$bus.$on('draw-codechart', (selectedFile) => {
-      console.log(selectedFile)
+    this.$bus.$on('file-selected', (selectedFile) => {
+      this.filename = selectedFile.replace(/E:\\Workspace\\Visualization\\srcCodeHelperServer\\data\\/g,'')
       this.$axios.get('files/getFileContent', {
         filename: selectedFile
       }).then(({ data }) => {
@@ -25,8 +28,23 @@ export default {
 <style type="text/css" lang="scss">
 .code-chart {
   height: 100%;
-  overflow-x: scroll;
-  overflow-y: scroll;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  .title{
+    flex: 0.5;
+    background-color:rgb(245, 245, 245);
+    font-size: 18px;
+    padding-top: 10px;
+    text-align: center;
+  }
+  .content{
+    overflow: auto;
+    flex: 15;
+    font-weight: bold;
+  }
 }
-
+.hljs{
+  overflow-x: unset;
+}
 </style>

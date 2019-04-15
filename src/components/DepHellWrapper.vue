@@ -20,7 +20,7 @@ export default {
       centerSvg: null,
     }
   },
-  props: ['root', 'filesInfo', 'colorMap'],
+  props: ['root', 'filesInfo', 'maxDepth', 'colorMap'],
   updated() {
     console.log("dephellwrapper updated")
     console.log('root in dephell updated')
@@ -73,7 +73,7 @@ export default {
         .style("fill", function(d) {
           if (d.data.type === "dir")
             return "#fed9a6"
-          if(d.data.type === 'file' && d.depth === 6){
+          if(d.depth === vm.maxDepth){
             let temp = vm.dependedData.find(item => item.fileid === d.data.id)
             return compute(linear(temp.depended))
           }
@@ -104,9 +104,14 @@ export default {
         })
         .append("title")
         .text((d) => d.data.name)
+      
+      node.on('click', d => {
+        if(d.depth === this.maxDepth)
+          this.$bus.$emit('file-selected', d.data.name)
+      })
 
-        // 添加文字
-        node
+      // 添加文字
+      node
         .append('text')
         .style('cursor', 'default')
         .style('font-size', 12+'px')
@@ -184,7 +189,7 @@ export default {
     },
   },
   created(){
-    const requiredData = ['root', 'filesInfo']
+    const requiredData = ['root', 'filesInfo', 'maxDepth']
     let cnt = 0
     requiredData.forEach(d => {
       this.$watch(d, val => {

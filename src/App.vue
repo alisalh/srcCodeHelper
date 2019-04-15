@@ -1,16 +1,16 @@
 <template>
   <div id="app">
-    <div class="left-panel column">
+    <div class="left-panel">
       <div class='control-panel bl-card-shadow'>
         <line-chart :lenDis="lenDis" :lenThreshold='lenThreshold' :maxLen='maxLen'>
         </line-chart>
         <bar-chart :colorMap="colorMap"></bar-chart>
       </div>
-      <dep-hell-wrapper :root="treeRoot" :filesInfo="filesInfo" :colorMap="colorMap">
+      <dep-hell-wrapper :root="treeRoot" :filesInfo="filesInfo" :maxDepth="maxDepth" :colorMap="colorMap">
       </dep-hell-wrapper>
       <scatter-plot :coordinates="coordinates"></scatter-plot>
     </div>
-    <div class="center-panel column">
+    <div class="center-panel">
       <div class="first-row bl-card-shadow">
         <dep-path :graphData="graphData" :filesDist="filesDist"></dep-path>
       </div>
@@ -18,9 +18,7 @@
         <parallel-coordinate :filesInfo="filesInfo" class='parallel-coordinate'></parallel-coordinate>
       </div>
     </div>
-    <div class="right-panel column">
-      <code-chart class="bl-card-shadow"></code-chart>
-    </div>
+    <code-chart class="right-panel bl-card-shadow"></code-chart>
   </div>
 </template>
 <script>
@@ -56,6 +54,7 @@ export default {
     return {
       selectedFileName: 'None',
       treeRoot: null,
+      maxDepth: 0,
       filesInfo: null,
       filesDist: null,
       filesList: null,
@@ -90,6 +89,7 @@ export default {
       this.$axios.get('files/getFolderHierarchy', {
         libName:'vue'
       }).then(({ data }) => {
+        this.maxDepth = data.maxDepth
         let treeRoot = d3.hierarchy(data.root);
         treeRoot.sum(function(d) {return !d.children && d.type==='file' ? 1 : 0;})
         this.treeRoot = treeRoot
