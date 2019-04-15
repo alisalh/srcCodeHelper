@@ -112,21 +112,17 @@ export default {
           }
         })
     },
-    drawRadialStack() {
+    drawRadialStack(data) {
       //get StackData from badDeps
       let keys = ['long', 'indirect', 'direct'].map(d => `${d}-count`),
         stack = d3.stack().keys(keys)
       this.fileDepInfo = []
       this.root.leaves().forEach(node => {
-        let fileName = node.data.name,
-          stackItem = { fileName }
-        for (let dep of this.badDeps) {
-          let type = dep.type,
-            paths = dep.paths,
-            filteredDeps = paths.filter(d => d.path.indexOf(fileName) !== -1 && d.path.length >= this.lenTreshold)  //筛选包含此文件的路径
-          stackItem[`${type}-paths`] = filteredDeps
-          stackItem[`${type}-count`] = Math.log(filteredDeps.length+1)
-        }
+        let fileid = node.data.id, stackItem = {fileid}
+        let stackData = data.find(d => d.fileid === fileid)
+        stackItem['long-count'] = Math.log(stackData['long']+1)
+        stackItem['indirect-count'] = Math.log(stackData['indirect']+1)
+        stackItem['direct-count'] = Math.log(stackData['direct']+1)
         this.fileDepInfo.push(stackItem)
       })
       let series = stack(this.fileDepInfo)
@@ -142,9 +138,10 @@ export default {
         .innerRadius(function(d) { return y(d[0]) })
         .outerRadius(function(d) { return y(d[1]) });
 
-      this.centerSvg.select('.radial-stack').remove()
-      let seiresG = this.centerSvg.append("g")
+      this.svg.select('.radial-stack').remove()
+      let seiresG = this.svg.append("g")
         .attr("class", "radial-stack")
+        .attr('transform', 'translate(' + this.svgWidth / 2 + ',' + (this.svgHeight / 2) + ')')
         .selectAll("g").data(series).enter().append('g').attr("class", 'seires')
         .attr("fill", (d, i) => {
           let type = keys[i].split('-')[0]
@@ -156,11 +153,12 @@ export default {
   },
   watch: {
     lenTreshold(val){
-      if(val)
+      if(val || val === 0)
         this.$axios.get('files/getStackData', {
           threshold: val
         }).then(({ data }) => {
-          
+          console.log(data)
+          this.drawRadialStack(data)
         })
     },
   },
@@ -172,6 +170,7 @@ export default {
         if(val) cnt++
         if(cnt === requiredData.length) {
           this.drawHierachy()
+          this.lenTreshold = 0
         }
       })
     })
@@ -182,7 +181,6 @@ export default {
     this.svg = d3.select(this.$refs.root).append('svg')
       .attr('width', this.svgWidth)
       .attr('height', this.svgHeight)
-    
     this.$bus.$on('threshold-selected', d =>{
       this.lenTreshold = d
       // this.drawRadialStack()
