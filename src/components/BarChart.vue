@@ -17,7 +17,7 @@ export default {
   methods: {
     draw(data) {
       d3.select(".bar-chart>svg *").remove();
-      var margin = { top: 0, right: 40, bottom: 10, left: 60},
+      var margin = { top: 15, right: 40, bottom: 15, left: 60},
         width = this.svgWidth - margin.left - margin.right,
         height = this.svgHeight - margin.top - margin.bottom,
         g = this.svg
@@ -45,6 +45,12 @@ export default {
         })
       ]);
 
+      g.append("g")
+        .attr("class", "axis axis--x")
+        .attr("transform", "translate(0," + 2 + ")")
+        .call(d3.axisTop(x).tickSize(3))
+        .attr('font-size', 9.8)
+        
       g.append("g")
         .attr("class", "axis axis--y")
         .call(d3.axisLeft(y))

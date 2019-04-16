@@ -4,11 +4,11 @@
       <div class='control-panel bl-card-shadow'>
         <line-chart :lenDis="lenDis" :lenThreshold='lenThreshold' :maxLen='maxLen'>
         </line-chart>
-        <bar-chart :colorMap="colorMap"></bar-chart>
+        <!-- <bar-chart :colorMap="colorMap"></bar-chart> -->
       </div>
       <dep-hell-wrapper :root="treeRoot" :filesInfo="filesInfo" :maxDepth="maxDepth" :colorMap="colorMap">
       </dep-hell-wrapper>
-      <scatter-plot :coordinates="coordinates"></scatter-plot>
+      <scatter-plot :coordinates="coordinates" :colorMap="colorMap"></scatter-plot>
     </div>
     <div class="center-panel">
       <div class="first-row bl-card-shadow">
@@ -194,16 +194,16 @@ html {
     display: flex;
     flex-direction: column;
     .control-panel{
-      flex: 1.3;
+      flex: 1.2;
       margin-bottom: 3px;
       display: flex;
       flex-direction: column;
-      .line-chart{
-        flex: 1;
-      }
-      .bar-chart{
-        flex: 1;
-      }
+      // .line-chart{
+      //   flex: 1;
+      // }
+      // .bar-chart{
+      //   flex: 1.2;
+      // }
     }
     .dep-hell-wrapper {
       flex: 4;

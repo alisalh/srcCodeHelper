@@ -14,7 +14,7 @@ export default {
         svg: null
     }
   },
-  props:['filteredCoordinates'],
+  props:['filteredCoordinates', 'colorMap'],
   methods: {
       draw(data){
           d3.select(this.$refs.root).selectAll('svg *').remove()
@@ -40,11 +40,12 @@ export default {
             .enter()
             .append('circle')
             .attr('class', 'marker')
-            .attr('r', 3.5)
+            .attr('r', 3)
             .attr('cx', d => x(parseFloat(d.x)))
             .attr('cy', d => y(parseFloat(d.y)))
-            .attr('stroke', '#bdbdbd')
-            .attr('fill', '#fff5e2')
+            // .attr('stroke', '#f0f0f0')
+            // .attr('stroke-width', 0.5)
+            .attr('fill', d => this.colorMap[d.type])
             .on('mouseenter', d => {
                 console.log(d.id)
             })
@@ -60,9 +61,11 @@ export default {
             this.$axios.get('files/getCoordinates', {
                 len: d
             }).then(({ data }) => {
-                console.log(data)
                 this.draw(data)
             })
+        })
+        this.$bus.$on('threshold-restored', ()=>{
+            d3.select(this.$refs.root).selectAll('svg *').remove()
         })
     }
 }

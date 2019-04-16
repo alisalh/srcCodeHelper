@@ -2,7 +2,17 @@
   <div ref="root" class="dep-path">
     <div ref="root1" class='main-div'></div>
     <div class='sub-div'>
-      <div class='empty-div'></div>
+      <div class='other-div'>
+        <div class='empty-div'></div>
+        <div class='text-div'>Depth</div>
+        <div class='slider-div'>
+           <el-slider v-model="depth" :step="1" 
+            show-stops :min="1" :max="6" size="mini"
+            @change="selectThreshold">
+          </el-slider>
+          <el-input v-model="depth" size="mini"></el-input>
+        </div>
+      </div>
       <div class='subgraph-div'>
         <div class="header">
           <div class="title">Selected Node</div>
@@ -38,16 +48,20 @@ export default {
       subSvgWidth: 0,
       subSvgHeight: 0,
       isSelected: false,
-      depth: 2   //vue: 1~6, d3: 2~4
+      depth: 6   //vue: 1~6, d3: 2~4
     }
   },
   props:['graphData', 'filesDist', 'root', 'filesList', 'maxDepth'],
   methods: {
+    selectThreshold(){
+      console.log(this.depth+1)
+      this.updateGraph(this.depth)
+    },
     updateGraph(depth){
       let newGraphData = {nodes:[], links:[]}
       // 复制link
       this.graphData.links.forEach(link =>{
-        newGraphData.links.push({source: link.source, target: link.target})
+        newGraphData.links.push({source: link.source.fileid, target: link.target.fileid})
       })
       // 查找当前depth的文件夹节点
       let nodes = d3.partition()(this.root).descendants().slice(1)
@@ -190,7 +204,7 @@ export default {
               for(var key in dist)
                 obj.push({key: key, val: dist[key]})
               obj.sort(up)
-              for(let i=0; i<obj.length/2; i++){
+              for(let i=0; i<11; i++){
                 fileid.push(parseInt(obj[i].key))
                 val.push(parseFloat(obj[i].val))
               }
@@ -381,10 +395,7 @@ export default {
       this.$watch(d, val => {
         if(val) cnt++
         if(cnt === requiredData.length) {
-          if(this.depth === this.maxDepth)
             this.draw(this.graphData)
-          else
-            this.updateGraph(this.depth)
         }
       })
     })
@@ -404,7 +415,7 @@ export default {
 }
 
 </script>
-<style type="text/css" lang="scss" scoped>
+<style type="text/css" lang="scss">
 .dep-path {
   height: 100%;
   display: flex;
@@ -417,8 +428,44 @@ export default {
     width: 100%;
     display: flex;
     flex-direction: column;
-    .empty-div{
+    .other-div{
       flex: 0.5;
+      display: flex;
+      flex-direction: column;
+      .empty-div{
+        flex: 3;
+      }
+      .text-div{
+        flex: 0.5;
+        font-size: 14px;
+      }
+      .slider-div{
+        flex: 1;
+        display: flex;
+        .el-slider{
+          margin-right: 10px;
+          flex: 4;
+          .el-slider__runway{
+            margin-top: 5px;
+            height: 5px;
+          }
+          .el-slider__bar {
+            height: 5px;
+            background-color: #abadaf;
+          }
+          .el-slider__button{
+            border: 2px solid #b8b9bc;
+            height: 13px;
+            width: 13px;
+          }
+        }
+        .el-input{
+          flex: 1;
+          margin-top: -8px;
+          margin-right: 5px;
+        }
+        
+      }
     }
     .compared-div,.subgraph-div{
       flex: 1;
@@ -448,4 +495,5 @@ export default {
     }
   }
 }
+
 </style>

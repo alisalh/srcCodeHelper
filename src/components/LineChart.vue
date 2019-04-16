@@ -9,7 +9,8 @@ export default {
     return {
       svgWidth: null,
       svgHeight: null,
-      chartData: []
+      chartData: [],
+      tickValues: []
     }
   },
   props: ["lenDis",'lenThreshold','maxLen'],
@@ -34,6 +35,12 @@ export default {
         if (this.lenDis[i]) this.chartData.push([i, this.lenDis[i]])
         else this.chartData.push([i, 0])
       }
+      for(let i=0; i<=maxLen;){
+        this.tickValues.push(i)
+        i = i+2
+      }
+      if(this.tickValues.indexOf(maxLen) === -1)
+        this.tickValues.push(maxLen)
     },
     filterLongDep(val){
       this.$emit('filterLongDep',val)
@@ -43,7 +50,7 @@ export default {
       var svg = d3.select(this.$refs.root).append('svg')
         .attr('width', this.svgWidth)
         .attr('height', this.svgHeight),
-        margin = { top: 10, right: 60, bottom: 15, left: 60 },
+        margin = { top: 10, right: 60, bottom: 35, left: 35 },
         width = this.svgWidth - margin.left - margin.right,
         height = this.svgHeight - margin.top - margin.bottom,
         g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
@@ -61,15 +68,24 @@ export default {
       g.append("g")
         .attr("class", "axis axis--x")
         .attr("transform", "translate(0," + height + ")")
-        .call(d3.axisBottom(x).tickSize(4))
-        // .call(g => g.select('.domain').remove());
+        .call(d3.axisBottom(x).tickValues(this.tickValues).tickSize(4))
 
       g.append("g")
         .attr("class", "axis axis--y")
-        .call(d3.axisLeft(y).ticks(3, 's').tickSize(4))
+        .call(d3.axisLeft(y).ticks(5, 's').tickSize(4))
 
       g.append("path").datum(this.chartData).attr("d", line)
         .attr("class", "line")
+
+      //坐标轴文字
+      g.append('text').text('Length')
+        .attr('x', width + 15)
+        .attr('y', this.svgHeight - margin.bottom - 5)
+        .attr('font-size', 13)
+       g.append('text').text('Number of paths')
+        .attr('x', margin.left-20)
+        .attr('y', margin.top)
+        .attr('font-size', 13)
       
       // 添加定位线
       var area = d3.area()
@@ -114,8 +130,13 @@ export default {
             .attr('d', area(this.chartData.filter(len => len[0] >= d[0])))
             .attr('fill', 'steelblue')
             .attr('opacity', 0.5)
+            d3.event.stopPropagation()
             this.$bus.$emit('threshold-selected', d[0])
         })
+       svg.on('click', ()=>{
+         areaG.select('.areaG >*').remove()
+         this.$bus.$emit('threshold-restored', null)
+      })
     }
   }
 }

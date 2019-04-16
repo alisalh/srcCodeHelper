@@ -11,10 +11,12 @@ export default {
       svg: null,
       svgWidth: null,
       svgHeight: 0,
-      lenTreshold: null,
+      lenThreshold: null,
       dependedData: null,
       maxDepended: 0, 
-      hierarchyHiehgt: 110,
+      hierarchyHiehgt: 100,
+      legendHeight: 100,
+      legendData: [{type: 'long'}, {type: 'indirect'}, {type: 'direct'}],
       stackHeight: 30,
       fileDepInfo: null, // store dep info for each file
       centerSvg: null,
@@ -26,9 +28,43 @@ export default {
     console.log('root in dephell updated')
   },
   computed: {
+    // vue-130, d3-120
     dendrogramR() { return Math.min(this.svgWidth, this.svgHeight) / 2 - 130 }
   },
   methods: {
+    drawLegend(data){
+      this.svg.select('.legend').remove()
+      var legendG = this.svg.append('g')
+        .attr('class', 'legend')
+        .attr('transform', 'translate(25,10)')
+      var y = d3
+          .scaleBand()
+          .rangeRound([0, this.legendHeight])
+          .padding(0.3)
+      y.domain(data.map(function(d) { return d.type }))
+      legendG.selectAll(".circle")
+        .data(data)
+        .enter()
+        .append("circle")
+        .attr("class", "circle")
+        .attr("cy", function(d) {
+          return y(d.type);
+        })
+        .attr('r', 8)
+        .attr("fill", d => this.colorMap[d.type])
+      legendG.selectAll('.text')
+        .data(data)
+        .enter()
+        .append('text')
+        .attr('class', '.text')
+        .attr('y', function(d){
+          return y(d.type)
+        })
+        .attr('dx', 1+'em')
+        .attr('dy', 0.4+'em')
+        .text(d => d.type+": "+d.num)
+        .attr('font-size', 15)
+    },
     dataAdapter(){
       let maxVal = 0
       this.dependedData = []
@@ -54,7 +90,7 @@ export default {
         .outerRadius(function(d) { return Math.max(0, y(d.y1)); });
 
       var hierarchyG = this.svg.append('g')
-        .attr('transform', 'translate(' + this.svgWidth / 2 + ',' + (this.svgHeight / 2) + ')')
+        .attr('transform', 'translate(' + (this.svgWidth / 2 + 35) + ',' + this.svgHeight / 2 + ')')
 
       // 颜色色卡
       var a = d3.rgb(254,227,145), b = d3.rgb(102,37,6)
@@ -104,7 +140,7 @@ export default {
         })
         .append("title")
         .text((d) => d.data.name.replace(/E:\\Workspace\\Visualization\\srcCodeHelperServer\\data\\vue\\src\\/g,''))
-        // .text((d) => d.data.name.replace(/E:\\Workspace\\Visualization\\srcCodeHelperServer\\data\\d3\\src/g,''))
+        // .text((d) => d.data.name.replace(/E:\\Workspace\\Visualization\\srcCodeHelperServer\\data\\d3\\src\\/g,''))
       
       node.on('click', d => {
         if(d.depth === this.maxDepth)
@@ -119,7 +155,10 @@ export default {
         .attr('id', (d, i) => 'text'+i)
         .attr('dy', function(d, i) { 
           // vue
-          return (arc.centroid(d)[1] > 0 ? -4 : 12) 
+          return (arc.centroid(d)[1] > 0 ? -4 : 11) 
+
+          // // d3
+          // return (arc.centroid(d)[1] > 0 ? -5 : 14) 
         })
         .append('textPath')
         .attr('startOffset','50%')
@@ -169,7 +208,7 @@ export default {
       this.svg.select('.radial-stack').remove()
       let seiresG = this.svg.append("g")
         .attr("class", "radial-stack")
-        .attr('transform', 'translate(' + this.svgWidth / 2 + ',' + (this.svgHeight / 2) + ')')
+        .attr('transform', 'translate(' + (this.svgWidth / 2 + 35) + ',' + this.svgHeight / 2 + ')')
         .selectAll("g").data(series).enter().append('g').attr("class", 'seires')
         .attr("fill", (d, i) => {
           let type = keys[i].split('-')[0]
@@ -180,13 +219,20 @@ export default {
     }
   },
   watch: {
-    lenTreshold(val){
-      if(val || val === 0)
+    lenThreshold(val){
+      if(val || val === 0){
         this.$axios.get('files/getStackData', {
           threshold: val
         }).then(({ data }) => {
           this.drawRadialStack(data)
         })
+        this.$axios.get('files/getBarData', {
+          threshold: val
+        }).then(({ data }) => {
+          this.drawLegend(data)
+        })
+      }
+        
     },
   },
   created(){
@@ -198,7 +244,7 @@ export default {
         if(cnt === requiredData.length) {
           this.dataAdapter()
           this.drawHierachy()
-          this.lenTreshold = 0
+          this.lenThreshold = 0
         }
       })
     })
@@ -210,8 +256,10 @@ export default {
       .attr('width', this.svgWidth)
       .attr('height', this.svgHeight)
     this.$bus.$on('threshold-selected', d =>{
-      this.lenTreshold = d
-      // this.drawRadialStack()
+      this.lenThreshold = d
+    })
+    this.$bus.$on('threshold-restored', ()=>{
+      this.lenThreshold = 0
     })
   }
 }
