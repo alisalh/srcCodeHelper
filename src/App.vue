@@ -12,7 +12,7 @@
     </div>
     <div class="center-panel">
       <div class="first-row bl-card-shadow">
-        <dep-path :graphData="graphData" :filesDist="filesDist"></dep-path>
+        <dep-path :graphData="graphData" :filesDist="filesDist" :root="treeRoot" :filesList="filesList" :maxDepth="maxDepth"></dep-path>
       </div>
       <div class="second-row bl-card-shadow">
         <parallel-coordinate :filesInfo="filesInfo" class='parallel-coordinate'></parallel-coordinate>
@@ -87,7 +87,7 @@ export default {
     },
     getFolderHierarchy() {
       this.$axios.get('files/getFolderHierarchy', {
-        libName:'vue'
+        // 暂无参数
       }).then(({ data }) => {
         this.maxDepth = data.maxDepth
         let treeRoot = d3.hierarchy(data.root);

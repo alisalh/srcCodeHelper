@@ -103,7 +103,8 @@ export default {
             }
         })
         .append("title")
-        .text((d) => d.data.name)
+        .text((d) => d.data.name.replace(/E:\\Workspace\\Visualization\\srcCodeHelperServer\\data\\vue\\src\\/g,''))
+        // .text((d) => d.data.name.replace(/E:\\Workspace\\Visualization\\srcCodeHelperServer\\data\\d3\\src/g,''))
       
       node.on('click', d => {
         if(d.depth === this.maxDepth)

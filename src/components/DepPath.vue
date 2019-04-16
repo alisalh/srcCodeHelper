@@ -37,22 +37,74 @@ export default {
       svgHeight: 0,
       subSvgWidth: 0,
       subSvgHeight: 0,
-      isSelected: false
+      isSelected: false,
+      depth: 2   //vue: 1~6, d3: 2~4
     }
   },
-  props:['graphData', 'filesDist'],
+  props:['graphData', 'filesDist', 'root', 'filesList', 'maxDepth'],
   methods: {
-    resetAllStyle() {
-      this.nodes.attr("stroke-dasharray", null).attr("r", this.defaultR)
-      this.links.attr("stroke-dasharray", null)
+    updateGraph(depth){
+      let newGraphData = {nodes:[], links:[]}
+      // 复制link
+      this.graphData.links.forEach(link =>{
+        newGraphData.links.push({source: link.source, target: link.target})
+      })
+      // 查找当前depth的文件夹节点
+      let nodes = d3.partition()(this.root).descendants().slice(1)
+      let dirNodes = nodes.filter(node => node.depth === depth && node.data.type ==='dir')
+      let dirSize = {}
+      dirNodes.forEach(node => {
+        let  fileids = []
+        // 查找当前文件夹下的文件
+        let files = this.filesList.filter(file => file.indexOf(node.data.name) > -1)
+        files.forEach(file =>{
+          let index = this.filesList.indexOf(file)
+          fileids.push(index)
+        })
+        dirSize[node.data.name] = files.length
+        let links = []
+        // 替换link
+        newGraphData.links.forEach(link =>{
+          if(fileids.indexOf(link.source) === -1){
+            if(fileids.indexOf(link.target) === -1)
+              links.push({source: link.source, target: link.target})
+            else
+              links.push({source: link.source, target: node.data.name})
+          }
+          else{
+            if(fileids.indexOf(link.target) === -1)
+                links.push({source: node.data.name, target: link.target})
+          }
+        })
+        newGraphData.links = links
+      })
+      // 更新nodes和links
+      let nodesSet = new Set(), linksSet = new Set()
+      newGraphData.links.forEach(link =>{
+        nodesSet.add(link.source)
+        nodesSet.add(link.target)
+        linksSet.add(link.source + '|' + link.target)
+      })
+      newGraphData.nodes = [...nodesSet].map(d => {
+        if(dirSize[d])
+          return { fileid: d, size: dirSize[d]}
+        else
+          return {fileid: d}
+      })
+      newGraphData.links = [...linksSet].map(d => {
+        let parts = d.split('|')
+          return { source: parts[0], target: parts[1] }
+      })
+      console.log(newGraphData)
+      this.draw(newGraphData)
     },
-    draw() {
+    draw(data) {
       d3.select('.main-div').selectAll('svg *').remove()
       // console.log(d3.select(this.$refs.root).selectAll('svg *'))
       let vm = this
       var simulation
       // 小于200表示vue
-      if(this.graphData.nodes.length < 200){
+      if(data.nodes.length < 200){
         simulation = d3.forceSimulation()
           .force("link", d3.forceLink().id(function(d) { return d.fileid; }))
           .force("charge", d3.forceManyBody().strength(-200).distanceMin(30).distanceMax(100))
@@ -62,17 +114,17 @@ export default {
       else{
         simulation = d3.forceSimulation()
           .force("link", d3.forceLink().id(function(d) { return d.fileid }))
-          .force("charge", d3.forceManyBody().strength(-100).distanceMin(20).distanceMax(80))
-          .force("center", d3.forceCenter(this.svgHeight / 2 - 20, this.svgWidth / 2))
-          .force('collision', d3.forceCollide().radius(function(d) { return 5 }))
+          .force("charge", d3.forceManyBody().strength(-90).distanceMin(20).distanceMax(80))
+          .force("center", d3.forceCenter(this.svgHeight / 2, this.svgWidth / 2 - 20))
+          .force('collision', d3.forceCollide().radius(function(d) { return 10 }))
       }
 
       simulation
-        .nodes(this.graphData.nodes)
+        .nodes(data.nodes)
         .on("tick", ticked);
 
       simulation.force("link")
-        .links(this.graphData.links)
+        .links(data.links)
 
       // 颜色色卡
       var a = d3.rgb(165,0,38), b = d3.rgb(253,174,97)
@@ -82,7 +134,7 @@ export default {
       this.links = this.svg.append("g")
         .attr("class", "links")
         .selectAll("line")
-        .data(this.graphData.links)
+        .data(data.links)
         .enter().append("line")
         .style("stroke", (d, i) =>{
           let linearGradient = this.svg.append('defs')
@@ -114,55 +166,65 @@ export default {
       this.nodes = this.svg.append("g")
         .attr("class", "nodes")
         .selectAll("circle")
-        .data(this.graphData.nodes)
+        .data(data.nodes)
         .enter().append("circle")
-        .attr("r", this.defaultR)
+        .attr("r", d => {
+          if(this.depth === this.maxDepth)
+            return this.defaultR
+          else{
+            if(d.size)
+              return (d.size/10+2+this.defaultR)
+            else
+              return this.defaultR
+          }
+        })
         .attr("fill", this.color)
         .attr('stroke', 'white')
         .on('click', (d) => {
-          if(!this.isSelected){
-             resetState()
-            // 点击节点显示相似节点
-            let dist = this.filesDist.filter(dist => parseInt(dist.id) === d.fileid)[0],
-                  obj = [], fileid = [], val = []
-            for(var key in dist)
-              obj.push({key: key, val: dist[key]})
-            obj.sort(up)
-            for(let i=0; i<obj.length/2; i++){
-              fileid.push(parseInt(obj[i].key))
-              val.push(parseFloat(obj[i].val))
-            }
-            var linear = d3.scaleLinear().domain([Math.min(...val), Math.max(...val)]).range([0, 1])
-            fileid.forEach((id, i) =>{
-              this.nodes.filter(node => node.fileid === id)
-                .attr('fill', compute(linear(val[i])))
-                .attr('r', 4)
-            })
-            // 当前点击节点的半径最大
-            this.nodes.filter(node => node.fileid === d.fileid).attr('r', 6)
-          }
-          else{
-            // 比较节点的stroke上色
-            this.nodes.filter(node => node.fileid === d.fileid).attr('stroke', '#4393c3').attr('stroke-width', 1.5)
-          }
-          d3.event.stopPropagation()
-
-          // 绘制子图
-          this.$axios.get('files/getSubGraphData', {
-            fileid: d.fileid
-          }).then(({ data }) => {
-            var subGraphData = data.subGraph
+          if(this.depth === this.maxDepth){
             if(!this.isSelected){
-              // 未选择节点时绘制selected nodes
-              this.drawSubGraph('selected', subGraphData)
-              this.isSelected = true
+              resetState()
+              // 点击节点显示相似节点
+              let dist = this.filesDist.filter(dist => parseInt(dist.id) === d.fileid)[0],
+                    obj = [], fileid = [], val = []
+              for(var key in dist)
+                obj.push({key: key, val: dist[key]})
+              obj.sort(up)
+              for(let i=0; i<obj.length/2; i++){
+                fileid.push(parseInt(obj[i].key))
+                val.push(parseFloat(obj[i].val))
+              }
+              var linear = d3.scaleLinear().domain([Math.min(...val), Math.max(...val)]).range([0, 1])
+              fileid.forEach((id, i) =>{
+                this.nodes.filter(node => node.fileid === id)
+                  .attr('fill', compute(linear(val[i])))
+                  .attr('r', 4)
+              })
+              // 当前点击节点的半径最大
+              this.nodes.filter(node => node.fileid === d.fileid).attr('r', 6)
             }
             else{
-              // 已选中节点时绘制compared nodes
-              this.drawSubGraph('compared', subGraphData)
+              // 比较节点的stroke上色
+              this.nodes.filter(node => node.fileid === d.fileid).attr('stroke', '#4393c3').attr('stroke-width', 1.5)
             }
-          })
-          
+            d3.event.stopPropagation()
+
+            // 绘制子图
+            this.$axios.get('files/getSubGraphData', {
+              fileid: d.fileid
+            }).then(({ data }) => {
+              var subGraphData = data.subGraph
+              if(!this.isSelected){
+                // 未选择节点时绘制selected nodes
+                this.drawSubGraph('selected', subGraphData)
+                this.isSelected = true
+              }
+              else{
+                // 已选中节点时绘制compared nodes
+                this.drawSubGraph('compared', subGraphData)
+              }
+            })
+          } 
         })
         // .call(d3.drag()
         //   .on("start", dragstarted)
@@ -170,7 +232,8 @@ export default {
         //   .on("end", dragended))
       
       this.svg.on('click', ()=>{
-        resetState()
+        if(this.depth === this.maxDepth)
+          resetState()
       })
       this.nodes.append("title")
         .text(function(d) { return d.id; })
@@ -202,7 +265,8 @@ export default {
               .attr('x2', boundX(d.target.y))
               .attr('y2', boundY(d.target.x))
             return 'url(#linear-gradient'+i+')'
-        })
+          })
+
         vm.nodes
           .attr("cx", function(d) { return boundX(d.y) })
           .attr("cy", function(d) { return boundY(d.x) });
@@ -309,20 +373,18 @@ export default {
     }
   },
   watch: {
-    // badDeps() {
-    //   // console.log('depData update')
-    //   this.dataAdapter()
-    //   this.draw()
-    // }
   },
   created() {
-    const requiredData = ['graphData', 'filesDist']
+    const requiredData = ['graphData', 'filesDist', 'root', 'filesList', 'maxDepth']
     let cnt = 0
     requiredData.forEach(d => {
       this.$watch(d, val => {
         if(val) cnt++
         if(cnt === requiredData.length) {
-          this.draw()
+          if(this.depth === this.maxDepth)
+            this.draw(this.graphData)
+          else
+            this.updateGraph(this.depth)
         }
       })
     })
@@ -338,40 +400,6 @@ export default {
       .attr("height", this.svgHeight)
     this.subSvgWidth = Math.floor(this.$refs.root2.clientWidth)
     this.subSvgHeight = Math.floor(this.$refs.root2.clientHeight)
-
-    // this.$bus.$on('highlight-dep', dep => {
-    //   if (dep.type !== this.type) return
-    //   this.resetAllStyle()
-    //   let path = dep.path,
-    //     nodes = [],
-    //     links = []
-    //   //nodes and links are extracted from path to highlight the coresponding links and nodes svg
-    //   for (let i = 0, len = path.length; i < len - 1; i++) {
-    //     nodes.push(path[i])
-    //     links.push({ source: path[i], dep: path[i + 1] })
-    //   }
-    //   //we need to connect the last node and the first node in type 'indirect'
-    //   if (this.type === 'indirect')
-    //     links.push({ source: path[path.length - 1], dep: path[0] })
-    //   nodes.push(path[path.length - 1])
-
-    //   // console.log(nodes,links,this.nodes)
-
-    //   //highlight nodes
-    //   this.nodes.filter(function(node) {
-    //     return nodes.find(d => d === node.id) !== undefined
-    //   }).attr('stroke-dasharray', '2')
-
-    //   //highlight the first and last nodes
-    //   this.nodes.filter(node => nodes.findIndex(d => d === node.id) === 0).attr("r", 10)
-    //   this.nodes.filter(node => nodes.findIndex(d => d === node.id) === nodes.length - 1).attr("r", 4)
-
-    //   //highlight links
-    //   this.links.filter(link => links.find(d => link.source.id === d.source && link.target.id === d.dep) !== undefined)
-    //     .attr("stroke-dasharray", '3')
-    // })
-    // this.dataAdapter()
-    // console.log(this.color,this.type,this.depData)
   }
 }
 
