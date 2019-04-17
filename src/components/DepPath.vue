@@ -56,7 +56,7 @@ export default {
       subSvgWidth: 0,
       subSvgHeight: 0,
       isSelected: false,
-      depth: 6   //vue: 1~6, d3: 2~4
+      depth: 6,   //vue: 1~6, d3: 2~4
     }
   },
   props:['graphData', 'filesDist', 'root', 'filesList', 'maxDepth'],
@@ -210,7 +210,7 @@ export default {
             this.path = this.filesList[d.fileid]
               .replace(/E:\\Workspace\\Visualization\\srcCodeHelperServer\\data\\vue\\src\\/g, '')
             if(!this.isSelected){
-              resetState()
+              this.resetState()
               // 点击节点显示相似节点
               let dist = this.filesDist.filter(dist => parseInt(dist.id) === d.fileid)[0],
                     obj = [], fileid = [], val = []
@@ -261,7 +261,7 @@ export default {
         this.path = null
         this.type = null
         if(this.depth === this.maxDepth)
-          resetState()
+          this.resetState()
       })
       this.nodes.append("title")
         .text(function(d) { return d.id; })
@@ -316,16 +316,19 @@ export default {
         d.fx = null;
         d.fy = null;
       }
-
-      function resetState(){
-        vm.nodes.attr('fill', vm.color)
-          .attr('r', vm.defaultR)
-          .attr('stroke', 'white')
-          .attr('stroke-width', 1)
-        vm.isSelected = false
-        d3.select('#selected').select('svg').remove()
-        d3.select('#compared').select('svg').remove()
-      }
+    },
+    resetState(){
+      this.nodes.attr('fill', this.color)
+        .attr('r', this.defaultR)
+        .attr('stroke', 'white')
+        .attr('stroke-width', 1)
+        .attr('opacity', 1)
+      this.links.attr('opacity', 1).attr('stroke-width', 0.3)
+      this.isSelected = false
+      this.type = null
+      this.path = null
+      d3.select('#selected').select('svg').remove()
+      d3.select('#compared').select('svg').remove()
     },
     drawSubGraph(divID, fileid, subGraphData){
       d3.select('#'+divID).select('svg').remove()
@@ -428,6 +431,27 @@ export default {
       .attr("height", this.svgHeight)
     this.subSvgWidth = Math.floor(this.$refs.root2.clientWidth)
     this.subSvgHeight = Math.floor(this.$refs.root2.clientHeight)
+    this.$bus.$on('path-selected', d=> {
+      let pathid = parseInt(d)
+      this.$axios.get('files/getPathInfoById', {
+        id: pathid
+      }).then(({ data }) => {
+        let path = data.path
+        if(d.type !== 'long'){
+          path.push(path[0])
+        }
+        this.resetState()
+        this.nodes.attr('opacity', 0.2)
+        this.links.attr('opacity', 0.2)
+        this.nodes.filter(node =>path.indexOf(node.fileid) !== -1)
+          .attr('fill','red')
+          .attr('r', 4)
+          .attr('opacity', 1)
+        this.links.filter(link =>path.indexOf(link.source.fileid) !== -1 && path.indexOf(link.target.fileid) !== -1)
+          .attr('opacity', 1)
+          .attr('stroke-width', 1.5)
+      })
+    })
   }
 }
 

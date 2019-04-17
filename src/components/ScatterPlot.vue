@@ -46,8 +46,8 @@ export default {
             // .attr('stroke', '#f0f0f0')
             // .attr('stroke-width', 0.5)
             .attr('fill', d => this.colorMap[d.type])
-            .on('mouseenter', d => {
-                console.log(d.id)
+            .on('click', d => {
+               this.$bus.$emit('path-selected', d.id)
             })
       }
   },

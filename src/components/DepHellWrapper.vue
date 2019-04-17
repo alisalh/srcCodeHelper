@@ -126,7 +126,7 @@ export default {
       // 颜色色卡
       var a = d3.rgb(254,227,145), b = d3.rgb(102,37,6)
       var compute = d3.interpolate(a, b)
-      var linear = d3.scaleLinear().domain([1, this.maxDepending]).range([0, 1])
+      var linear = d3.scaleLinear().domain([1, this.maxDepended]).range([0, 1])
       
       //partition the tree and attach additional attr on root as well as its descendants
       var node = hierarchyG.selectAll(".hierarchy-node").data(partition(this.root).descendants().slice(1)).enter().append("g")
@@ -141,9 +141,9 @@ export default {
           if (d.data.type === "dir")
             return "#fed9a6"
           if(d.depth === vm.maxDepth){
-            let temp = vm.dependingData.find(item => item.fileid === d.data.id)
-            if(temp.depending > 0)
-              return compute(linear(temp.depending))
+            let temp = vm.dependedData.find(item => item.fileid === d.data.id)
+            if(temp.depended > 0)
+              return compute(linear(temp.depended))
             else
               return '#fff7bc'
           }
@@ -198,12 +198,33 @@ export default {
           let selectedFile = this.filesInfo.filter(file => file.id === d.data.id)
           let source = selectedFile[0].fileInfo.depended,
             target = selectedFile[0].fileInfo.depending
-          // source.forEach(s => {
-          //   let temp = this.root.leaves().find(node => node.data.id === s)
-          //   let start = newArc.centroid(temp), end = newArc.centroid(d)
-          //   linkG.append('path').attr('d', 'M'+start+'Q'+0+','+ 0+',' +end)
-          //     .attr('fill', 'none').attr('stroke', 'grey')
-          // })
+          source.forEach(s => {
+            let temp = this.root.leaves().find(node => node.data.id === s)
+            let start = newArc.centroid(temp), end = newArc.centroid(d)
+            let linearGradient = this.svg.append('defs')
+              .append('linearGradient')
+              .attr('id', s+'linear-gradient')
+              .attr('gradientUnits','userSpaceOnUse')
+              .attr('x1', start[0])
+              .attr('y1', start[1])
+              .attr('x2', end[0])
+              .attr('y2', end[1])
+            linearGradient.append('stop')
+              .attr('offset', '0%')
+              .attr('stop-color', sourceColor)
+            linearGradient.append('stop')
+              .attr('offset', '33%')
+              .attr('stop-color', sourceColor)
+            linearGradient.append('stop')
+              .attr('offset', '66%')
+              .attr('stop-color', targetColor)
+            linearGradient.append('stop')
+              .attr('offset', '100%')
+              .attr('stop-color', targetColor)
+            linkG.append('path').attr('d', 'M'+start+'Q'+0+','+ 0+',' +end)
+              .attr('fill', 'none').attr('stroke', 'url(#'+s+'linear-gradient)')
+              .attr('stroke-width', 1.5)
+          })
           target.forEach(t => {
             let temp = this.root.leaves().find(node => node.data.id === t)
             let start = newArc.centroid(d), end = newArc.centroid(temp)
