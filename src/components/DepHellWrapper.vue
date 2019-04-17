@@ -1,6 +1,7 @@
 <template>
   <div class="dep-hell-wrapper bl-card-shadow" ref="root">
   </div>
+ 
 </template>
 <script type="text/javascript">
 import * as d3 from 'd3'
@@ -13,13 +14,16 @@ export default {
       svgHeight: 0,
       lenThreshold: null,
       dependedData: null,
+      dependingData: null,
       maxDepended: 0, 
+      maxDepending: 0,
       hierarchyHiehgt: 100,
       legendHeight: 100,
       legendData: [{type: 'long'}, {type: 'indirect'}, {type: 'direct'}],
       stackHeight: 30,
       fileDepInfo: null, // store dep info for each file
       centerSvg: null,
+      colorData:['#662506', '#993404','#cc4c02','#ec7014','#fe9929','#fec44f','#fee391','#fff7bc']
     }
   },
   props: ['root', 'filesInfo', 'maxDepth', 'colorMap'],
@@ -32,6 +36,29 @@ export default {
     dendrogramR() { return Math.min(this.svgWidth, this.svgHeight) / 2 - 130 }
   },
   methods: {
+    drawColorBar(data){
+      var colorBarG = this.svg.append('g')
+        .attr('class', 'bar')
+        .attr('transform', 'translate(35,'+200+')')
+      colorBarG.append('text')
+        .text('more')
+        .attr('font-size', 14)
+        .attr('dy', '-0.3em')
+        .attr('dx', '-0.5em')
+      data.forEach((d,i) =>{
+        colorBarG.append('rect')
+          .attr('width', 18)
+          .attr('height', 20)
+          .attr('y', i*20)
+          .attr('fill', d)
+      })
+      colorBarG.append('text')
+        .text('less')
+        .attr('font-size', 14)
+        .attr('y', data.length*20)
+        .attr('dy', '1em')
+        .attr('dx', '-0.3em')
+    },
     drawLegend(data){
       this.svg.select('.legend').remove()
       var legendG = this.svg.append('g')
@@ -66,14 +93,18 @@ export default {
         .attr('font-size', 15)
     },
     dataAdapter(){
-      let maxVal = 0
-      this.dependedData = []
+      let maxDependedVal = 0, maxDependingVal = 0
+      this.dependedData = [], this.dependingData = []
       for(let i=0; i< this.filesInfo.length; i++) {
-        if(maxVal < this.filesInfo[i].fileInfo.depended)
-          maxVal = this.filesInfo[i].fileInfo.depended
-        this.dependedData.push({fileid: this.filesInfo[i].id, depended: this.filesInfo[i].fileInfo.depended})
+        if(maxDependedVal < this.filesInfo[i].fileInfo.depended.length)
+          maxDependedVal = this.filesInfo[i].fileInfo.depended.length
+        if(maxDependingVal < this.filesInfo[i].fileInfo.depending.length)
+          maxDependingVal = this.filesInfo[i].fileInfo.depending.length
+         this.dependedData.push({fileid: this.filesInfo[i].id, depended: this.filesInfo[i].fileInfo.depended.length})
+        this.dependingData.push({fileid: this.filesInfo[i].id, depending: this.filesInfo[i].fileInfo.depending.length})
       }
-      this.maxDepended = maxVal
+      this.maxDepended = maxDependedVal
+      this.maxDepending = maxDependingVal
     },
     drawHierachy() {
       let vm = this
@@ -95,7 +126,7 @@ export default {
       // 颜色色卡
       var a = d3.rgb(254,227,145), b = d3.rgb(102,37,6)
       var compute = d3.interpolate(a, b)
-      var linear = d3.scaleLinear().domain([0, this.maxDepended]).range([0, 1])
+      var linear = d3.scaleLinear().domain([1, this.maxDepending]).range([0, 1])
       
       //partition the tree and attach additional attr on root as well as its descendants
       var node = hierarchyG.selectAll(".hierarchy-node").data(partition(this.root).descendants().slice(1)).enter().append("g")
@@ -110,8 +141,11 @@ export default {
           if (d.data.type === "dir")
             return "#fed9a6"
           if(d.depth === vm.maxDepth){
-            let temp = vm.dependedData.find(item => item.fileid === d.data.id)
-            return compute(linear(temp.depended))
+            let temp = vm.dependingData.find(item => item.fileid === d.data.id)
+            if(temp.depending > 0)
+              return compute(linear(temp.depending))
+            else
+              return '#fff7bc'
           }
           // return '#e5d8bd' 
           return '#ece4d5'
@@ -139,13 +173,66 @@ export default {
             }
         })
         .append("title")
-        .text((d) => d.data.name.replace(/E:\\Workspace\\Visualization\\srcCodeHelperServer\\data\\vue\\src\\/g,''))
+        .text((d) => d.data.name.substr(d.data.name.lastIndexOf('\\')+1))
         // .text((d) => d.data.name.replace(/E:\\Workspace\\Visualization\\srcCodeHelperServer\\data\\d3\\src\\/g,''))
       
+      // 重新定义arc用于绘制连线
+      let newX = d3.scaleLinear().range([0, 2 * Math.PI]);
+      let newY = d3.scaleLinear().range([this.dendrogramR, this.dendrogramR+20]).domain([1, 0]);
+      let newArc = d3.arc()
+        .startAngle(function(d) { return Math.max(0, Math.min(2 * Math.PI, newX(d.x0))); })
+        .endAngle(function(d) { return Math.max(0, Math.min(2 * Math.PI, newX(d.x1))); })
+        .innerRadius(function(d) { return Math.max(0, newY(d.y0)); })
+        .outerRadius(function(d) { return Math.max(0, newY(d.y1)); })
+      var linkG = this.svg.append('g')
+        .attr('class','linkG')
+        .attr('transform', 'translate(' + (this.svgWidth / 2 + 35) + ',' + this.svgHeight / 2 + ')')
+      let sourceColor = '#a2c7e6', targetColor = '#4682b4'
       node.on('click', d => {
-        if(d.depth === this.maxDepth)
+        if(d.depth === this.maxDepth){
           this.$bus.$emit('file-selected', d.data.name)
-      })
+
+          // 添加引用和被引用连线
+          this.svg.selectAll('.linkG path').remove()
+          this.svg.selectAll('defs').remove()
+          let selectedFile = this.filesInfo.filter(file => file.id === d.data.id)
+          let source = selectedFile[0].fileInfo.depended,
+            target = selectedFile[0].fileInfo.depending
+          // source.forEach(s => {
+          //   let temp = this.root.leaves().find(node => node.data.id === s)
+          //   let start = newArc.centroid(temp), end = newArc.centroid(d)
+          //   linkG.append('path').attr('d', 'M'+start+'Q'+0+','+ 0+',' +end)
+          //     .attr('fill', 'none').attr('stroke', 'grey')
+          // })
+          target.forEach(t => {
+            let temp = this.root.leaves().find(node => node.data.id === t)
+            let start = newArc.centroid(d), end = newArc.centroid(temp)
+            let linearGradient = this.svg.append('defs')
+              .append('linearGradient')
+              .attr('id', t+'linear-gradient')
+              .attr('gradientUnits','userSpaceOnUse')
+              .attr('x1', start[0])
+              .attr('y1', start[1])
+              .attr('x2', end[0])
+              .attr('y2', end[1])
+            linearGradient.append('stop')
+              .attr('offset', '0%')
+              .attr('stop-color', sourceColor)
+            linearGradient.append('stop')
+              .attr('offset', '33%')
+              .attr('stop-color', sourceColor)
+            linearGradient.append('stop')
+              .attr('offset', '66%')
+              .attr('stop-color', targetColor)
+            linearGradient.append('stop')
+              .attr('offset', '100%')
+              .attr('stop-color', targetColor)
+            linkG.append('path').attr('d', 'M'+start+'Q'+0+','+ 0+',' +end)
+              .attr('fill', 'none').attr('stroke', 'url(#'+t+'linear-gradient)')
+              .attr('stroke-width', 1.5)
+          })
+        }
+    })
 
       // 添加文字
       node
@@ -244,6 +331,7 @@ export default {
         if(cnt === requiredData.length) {
           this.dataAdapter()
           this.drawHierachy()
+          this.drawColorBar(this.colorData)
           this.lenThreshold = 0
         }
       })

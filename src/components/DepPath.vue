@@ -3,7 +3,11 @@
     <div ref="root1" class='main-div'></div>
     <div class='sub-div'>
       <div class='other-div'>
-        <div class='empty-div'></div>
+        <div class='info-div'>
+          <span>Graph: {{numNodes}} nodes, {{numLinks}} links</span>
+          <span>Filepath: {{path}}</span>
+          <span>Type: {{type}}</span>
+        </div>
         <div class='text-div'>Depth</div>
         <div class='slider-div'>
            <el-slider v-model="depth" :step="1" 
@@ -38,6 +42,10 @@ export default {
     return {
       svg: null,
       nodes: null,
+      numNodes: 0,
+      numLinks: 0,
+      type: null,
+      path: null,
       links: null,
       defaultR: 3,
       depData: null,
@@ -54,7 +62,8 @@ export default {
   props:['graphData', 'filesDist', 'root', 'filesList', 'maxDepth'],
   methods: {
     selectThreshold(){
-      console.log(this.depth+1)
+      // 选择depth后不能从散点图中选择路径
+      this.$bus.$emit('threshold-restored', null)
       this.updateGraph(this.depth)
     },
     updateGraph(depth){
@@ -109,7 +118,8 @@ export default {
         let parts = d.split('|')
           return { source: parts[0], target: parts[1] }
       })
-      console.log(newGraphData)
+      this.numNodes = newGraphData.nodes.length
+      this.numLinks = newGraphData.links.length
       this.draw(newGraphData)
     },
     draw(data) {
@@ -196,6 +206,9 @@ export default {
         .attr('stroke', 'white')
         .on('click', (d) => {
           if(this.depth === this.maxDepth){
+            this.type = 'file'
+            this.path = this.filesList[d.fileid]
+              .replace(/E:\\Workspace\\Visualization\\srcCodeHelperServer\\data\\vue\\src\\/g, '')
             if(!this.isSelected){
               resetState()
               // 点击节点显示相似节点
@@ -230,12 +243,12 @@ export default {
               var subGraphData = data.subGraph
               if(!this.isSelected){
                 // 未选择节点时绘制selected nodes
-                this.drawSubGraph('selected', subGraphData)
+                this.drawSubGraph('selected', d.fileid, subGraphData)
                 this.isSelected = true
               }
               else{
                 // 已选中节点时绘制compared nodes
-                this.drawSubGraph('compared', subGraphData)
+                this.drawSubGraph('compared', d.fileid, subGraphData)
               }
             })
           } 
@@ -244,8 +257,9 @@ export default {
         //   .on("start", dragstarted)
         //   .on("drag", dragged)
         //   .on("end", dragended))
-      
       this.svg.on('click', ()=>{
+        this.path = null
+        this.type = null
         if(this.depth === this.maxDepth)
           resetState()
       })
@@ -313,7 +327,7 @@ export default {
         d3.select('#compared').select('svg').remove()
       }
     },
-    drawSubGraph(divID, subGraphData){
+    drawSubGraph(divID, fileid, subGraphData){
       d3.select('#'+divID).select('svg').remove()
       var subSvg = d3.select('#'+divID).append("svg")
         .attr("width", this.subSvgWidth)
@@ -330,6 +344,7 @@ export default {
         .on("tick", ticked)
       simulation.force("link")
         .links(subGraphData.links)
+     
       var links = g.append("g")
         .attr("class", "links")
         .selectAll("line")
@@ -396,6 +411,8 @@ export default {
         if(val) cnt++
         if(cnt === requiredData.length) {
             this.draw(this.graphData)
+            this.numLinks = this.graphData.links.length
+            this.numNodes = this.graphData.nodes.length
         }
       })
     })
@@ -432,8 +449,18 @@ export default {
       flex: 0.5;
       display: flex;
       flex-direction: column;
-      .empty-div{
+      .info-div{
         flex: 3;
+        font-size: 14px;
+        margin-top: 10px;
+        display: flex;
+        flex-direction: column;
+        span{ 
+          width: 100%;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          margin-bottom: 3px;
+        }
       }
       .text-div{
         flex: 0.5;
