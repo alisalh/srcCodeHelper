@@ -17,7 +17,7 @@ export default {
       maxDepended: 0, 
       maxDepending: 0,
       hierarchyHiehgt: 100,
-      legendHeight: 70,
+      legendHeight: 60,
       legendData: [{type: 'indirect'}, {type: 'direct'}],
       stackHeight: 30,
       fileDepInfo: null, // store dep info for each file
@@ -38,35 +38,35 @@ export default {
     drawColorBar(data){
       var colorBarG = this.svg.append('g')
         .attr('class', 'bar')
-        .attr('transform', 'translate(35,'+180+')')
+        .attr('transform', 'translate(265, 22)')
       colorBarG.append('text')
         .text('more')
         .attr('font-size', 14)
-        .attr('dy', '-0.3em')
-        .attr('dx', '-0.5em')
+        .attr('dy', '1em')
+        .attr('dx', '-2.5em')
       data.forEach((d,i) =>{
         colorBarG.append('rect')
-          .attr('width', 18)
-          .attr('height', 20)
-          .attr('y', i*20)
+          .attr('width', 20)
+          .attr('height', 18)
+          .attr('x', i*20)
           .attr('fill', d)
       })
       colorBarG.append('text')
         .text('less')
         .attr('font-size', 14)
-        .attr('y', data.length*20)
+        .attr('x', data.length*20)
         .attr('dy', '1em')
-        .attr('dx', '-0.3em')
+        .attr('dx', '0.3em')
     },
     drawLegend(data){
       this.svg.select('.legend').remove()
       var legendG = this.svg.append('g')
         .attr('class', 'legend')
-        .attr('transform', 'translate(25,20)')
+        .attr('transform', 'translate(25,10)')
       var y = d3
           .scaleBand()
           .rangeRound([0, this.legendHeight])
-          .padding(0.3)
+          .padding(0.5)
       y.domain(data.map(function(d) { return d.type }))
       legendG.selectAll(".circle")
         .data(data)
@@ -76,7 +76,7 @@ export default {
         .attr("cy", function(d) {
           return y(d.type);
         })
-        .attr('r', 8)
+        .attr('r', 7)
         .attr("fill", d => this.colorMap[d.type])
       legendG.selectAll('.text')
         .data(data)
@@ -120,7 +120,7 @@ export default {
         .outerRadius(function(d) { return Math.max(0, y(d.y1)); });
 
       var hierarchyG = this.svg.append('g')
-        .attr('transform', 'translate(' + (this.svgWidth / 2 + 35) + ',' + this.svgHeight / 2 + ')')
+        .attr('transform', 'translate(' + this.svgWidth / 2 + ',' + (this.svgHeight / 2 + 30) + ')')
 
       // 颜色色卡
       var a = d3.rgb(254,227,145), b = d3.rgb(102,37,6)
@@ -185,7 +185,7 @@ export default {
         .outerRadius(function(d) { return Math.max(0, newY(d.y1)); })
       var linkG = this.svg.append('g')
         .attr('class','linkG')
-        .attr('transform', 'translate(' + (this.svgWidth / 2 + 35) + ',' + this.svgHeight / 2 + ')')
+        .attr('transform', 'translate(' + this.svgWidth / 2 + ',' + (this.svgHeight / 2 + 30) + ')')
       let sourceColor = '#d8e9f6', targetColor = '#3d7db2'
       node.on('click', d => {
         if(d.depth === this.maxDepth){
@@ -290,7 +290,7 @@ export default {
       this.svg.select('.radial-stack').remove()
       let seiresG = this.svg.append("g")
         .attr("class", "radial-stack")
-        .attr('transform', 'translate(' + (this.svgWidth / 2 + 35) + ',' + this.svgHeight / 2 + ')')
+        .attr('transform', 'translate(' + this.svgWidth / 2 + ',' + (this.svgHeight / 2 + 30) + ')')
         .selectAll("g").data(series).enter().append('g').attr("class", 'seires')
         .attr("fill", (d, i) => {
           let type = keys[i].split('-')[0]

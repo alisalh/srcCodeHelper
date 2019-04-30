@@ -170,7 +170,7 @@ html {
   height: 100%;
   .left-panel {
     margin-right: 3px;
-    flex: 1.1;
+    flex: 1.3;
     display: flex;
     flex-direction: column;
     .control-panel{
@@ -186,15 +186,15 @@ html {
       // }
     }
     .dep-hell-wrapper {
-      flex: 4;
+      flex: 4.3;
       margin-bottom: 3px;
     }
     .scatter-plot{
-      flex: 3;
+      flex: 2.5;
     }
   }
   .center-panel {
-    flex: 2;
+    flex: 3;
     display: flex;
     flex-direction: column;
     margin-right: 3px;
@@ -207,7 +207,7 @@ html {
     } 
   }
   .right-panel{
-    flex: 1;
+    flex: 1.2;
   }
 }
 
