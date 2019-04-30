@@ -11,7 +11,8 @@ export default {
         svgWidth: null,
         xScale: null,
         yScale: null, 
-        svg: null
+        svg: null,
+        maxLen: 0
     }
   },
   props:['filteredCoordinates', 'colorMap'],
@@ -33,6 +34,8 @@ export default {
             .nice()
             .range([height - margin.bottom, margin.top])
         this.yScale = y
+        var compute = d3.interpolate(3, 8) // vue:3-8, d3:3-4
+        var linear = d3.scaleLinear().domain([1, this.maxLen]).range([0, 1])
         var circle = this.svg
             .append('g')
             .selectAll('.marker')
@@ -40,14 +43,12 @@ export default {
             .enter()
             .append('circle')
             .attr('class', 'marker')
-            .attr('r', 3)
+            .attr('r', d => compute(linear(d.len)))
             .attr('cx', d => x(parseFloat(d.x)))
             .attr('cy', d => y(parseFloat(d.y)))
-            // .attr('stroke', '#f0f0f0')
-            // .attr('stroke-width', 0.5)
             .attr('fill', d => this.colorMap[d.type])
             .on('click', d => {
-                circle.attr('opacity', 0.01)
+                circle.attr('opacity', 0.3)
                 circle.filter(dot => dot.id === d.id).attr('opacity', 1)
                 this.$bus.$emit('path-selected', d.id)
                 d3.event.stopPropagation()
@@ -64,15 +65,10 @@ export default {
         this.svg = d3.select(this.$refs.root).append("svg")
             .attr("width", this.svgWidth)
             .attr("height", this.svgHeight)
-        this.$bus.$on('threshold-selected', d =>{
-            this.$axios.get('files/getCoordinates', {
-                len: d
-            }).then(({ data }) => {
-                this.draw(data)
-            })
-        })
-        this.$bus.$on('threshold-restored', ()=>{
-            d3.select(this.$refs.root).selectAll('svg *').remove()
+        this.$axios.get('files/getCoordinates', {
+        }).then(({ data }) => {
+            this.maxLen = d3.max(data.map(d => d.len))
+            this.draw(data)
         })
     }
 }
