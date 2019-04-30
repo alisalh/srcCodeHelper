@@ -11,7 +11,7 @@ export default {
       svgHeight: null,
       svgWidth: null,
       chartData: null,
-      dimensions: ['func', 'depending', 'depended', 'direct', 'indirect', 'long', 'size'],
+      dimensions: ['func', 'depending', 'depended', 'direct', 'indirect', 'size'],
       extents: null,
       y: {}
     }

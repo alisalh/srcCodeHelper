@@ -38,7 +38,7 @@ export default {
     drawColorBar(data){
       var colorBarG = this.svg.append('g')
         .attr('class', 'bar')
-        .attr('transform', 'translate(35,'+200+')')
+        .attr('transform', 'translate(35,'+180+')')
       colorBarG.append('text')
         .text('more')
         .attr('font-size', 14)
@@ -62,7 +62,7 @@ export default {
       this.svg.select('.legend').remove()
       var legendG = this.svg.append('g')
         .attr('class', 'legend')
-        .attr('transform', 'translate(25,10)')
+        .attr('transform', 'translate(25,20)')
       var y = d3
           .scaleBand()
           .rangeRound([0, this.legendHeight])
@@ -87,7 +87,7 @@ export default {
           return y(d.type)
         })
         .attr('dx', 1+'em')
-        .attr('dy', 0.4+'em')
+        .attr('dy', 0.35+'em')
         .text(d => d.type+": "+d.num)
         .attr('font-size', 15)
     },
@@ -190,9 +190,7 @@ export default {
       node.on('click', d => {
         if(d.depth === this.maxDepth){
           this.$bus.$emit('file-selected', d.data.name)
-          drawLinks(d)
-          node.filter(item => item.depth === this.maxDepth).attr('opacity', 0.2)
-        
+          drawSourceLinks(d)
         }
     })
 
@@ -228,13 +226,13 @@ export default {
         }
       })
       
-      function drawLinks(d){
+      //绘制被引用的连线
+      function drawSourceLinks(d){
         // 添加引用和被引用连线
         vm.svg.selectAll('.linkG path').remove()
         vm.svg.selectAll('defs').remove()
         let selectedFile = vm.filesInfo.filter(file => file.id === d.data.id)
-        let source = selectedFile[0].fileInfo.depended,
-          target = selectedFile[0].fileInfo.depending
+        let source = selectedFile[0].fileInfo.depended
         source.forEach(s => {
           let temp = vm.root.leaves().find(node => node.data.id === s)
           let start = newArc.centroid(temp), end = newArc.centroid(d)
@@ -260,33 +258,6 @@ export default {
             .attr('stop-color', targetColor)
           linkG.append('path').attr('d', 'M'+start+'Q'+0+','+ 0+',' +end)
             .attr('fill', 'none').attr('stroke', 'url(#'+s+'linear-gradient)')
-            .attr('stroke-width', 1.5)
-        })
-        target.forEach(t => {
-          let temp = vm.root.leaves().find(node => node.data.id === t)
-          let start = newArc.centroid(d), end = newArc.centroid(temp)
-          let linearGradient = vm.svg.append('defs')
-            .append('linearGradient')
-            .attr('id', t+'linear-gradient')
-            .attr('gradientUnits','userSpaceOnUse')
-            .attr('x1', start[0])
-            .attr('y1', start[1])
-            .attr('x2', end[0])
-            .attr('y2', end[1])
-          linearGradient.append('stop')
-            .attr('offset', '0%')
-            .attr('stop-color', sourceColor)
-          linearGradient.append('stop')
-            .attr('offset', '33%')
-            .attr('stop-color', sourceColor)
-          linearGradient.append('stop')
-            .attr('offset', '66%')
-            .attr('stop-color', targetColor)
-          linearGradient.append('stop')
-            .attr('offset', '100%')
-            .attr('stop-color', targetColor)
-          linkG.append('path').attr('d', 'M'+start+'Q'+0+','+ 0+',' +end)
-            .attr('fill', 'none').attr('stroke', 'url(#'+t+'linear-gradient)')
             .attr('stroke-width', 1.5)
         })
       }
