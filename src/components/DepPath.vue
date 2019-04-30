@@ -46,7 +46,8 @@ export default {
       subSvgWidth: 0,
       subSvgHeight: 0,
       isSelected: false,
-      depth: 0  
+      depth: 0,
+      directData: null 
     }
   },
   props:['graphData', 'filesDist', 'root', 'filesList', 'maxDepth', 'colorMap'],
@@ -139,34 +140,39 @@ export default {
       var a = d3.rgb(165,0,38), b = d3.rgb(253,174,97)
       var compute = d3.interpolate(a, b)
       function up(x, y) {return x.val -y.val}
-
       this.links = this.svg.append("g")
         .attr("class", "links")
         .selectAll("line")
         .data(data.links)
         .enter().append("line")
         .style("stroke", (d, i) =>{
-          let linearGradient = this.svg.append('defs')
-            .append('linearGradient')
-            .attr('id', 'linear-gradient'+i)
-            .attr('gradientUnits','userSpaceOnUse')
-            .attr('x1', boundX(d.source.y))
-            .attr('y1', boundY(d.source.x))
-            .attr('x2', boundX(d.target.y))
-            .attr('y2', boundY(d.target.x))
-          linearGradient.append('stop')
-            .attr('offset', '0%')
-            .attr('stop-color', '#d9d9d9')
-          linearGradient.append('stop')
-            .attr('offset', '33%')
-            .attr('stop-color', '#d9d9d9')
-          linearGradient.append('stop')
-            .attr('offset', '66%')
-            .attr('stop-color', '#525252')
-          linearGradient.append('stop')
-            .attr('offset', '100%')
-            .attr('stop-color', '#525252')
-          return 'url(#linear-gradient'+i+')'
+          if(this.directData.indexOf(d.source.fileid+'|'+d.target.fileid) != -1 && 
+            this.directData.indexOf(d.target.fileid+'|'+d.source.fileid) != -1){
+            return '#525252'
+          }
+          else{
+            let linearGradient = this.svg.append('defs')
+              .append('linearGradient')
+              .attr('id', 'linear-gradient'+i)
+              .attr('gradientUnits','userSpaceOnUse')
+              .attr('x1', boundX(d.source.y))
+              .attr('y1', boundY(d.source.x))
+              .attr('x2', boundX(d.target.y))
+              .attr('y2', boundY(d.target.x))
+            linearGradient.append('stop')
+              .attr('offset', '0%')
+              .attr('stop-color', '#d9d9d9')
+            linearGradient.append('stop')
+              .attr('offset', '33%')
+              .attr('stop-color', '#d9d9d9')
+            linearGradient.append('stop')
+              .attr('offset', '66%')
+              .attr('stop-color', '#525252')
+            linearGradient.append('stop')
+              .attr('offset', '100%')
+              .attr('stop-color', '#525252')
+            return 'url(#linear-gradient'+i+')'
+          }
         })
         .attr("stroke-width", d => {
           return 0.3
@@ -272,12 +278,18 @@ export default {
           .attr("x2", function(d) { return boundX(d.target.y) })
           .attr("y2", function(d) { return boundY(d.target.x) })
           .style("stroke", (d, i) =>{
-            vm.svg.select('#linear-gradient'+i)
-              .attr('x1', boundX(d.source.y))
-              .attr('y1', boundY(d.source.x))
-              .attr('x2', boundX(d.target.y))
-              .attr('y2', boundY(d.target.x))
-            return 'url(#linear-gradient'+i+')'
+            if(vm.directData.indexOf(d.source.fileid+'|'+d.target.fileid) != -1 && 
+              vm.directData.indexOf(d.target.fileid+'|'+d.source.fileid) != -1){
+              return '#525252'
+            }
+            else{
+              vm.svg.select('#linear-gradient'+i)
+                .attr('x1', boundX(d.source.y))
+                .attr('y1', boundY(d.source.x))
+                .attr('x2', boundX(d.target.y))
+                .attr('y2', boundY(d.target.x))
+              return 'url(#linear-gradient'+i+')'
+            }
           })
 
         vm.nodes
@@ -398,10 +410,14 @@ export default {
       this.$watch(d, val => {
         if(val) cnt++
         if(cnt === requiredData.length) {
-          this.depth = this.maxDepth
-          this.draw(this.graphData)
-          this.numLinks = this.graphData.links.length
-          this.numNodes = this.graphData.nodes.length 
+          this.$axios.get('files/getDirect', {
+          }).then(({data}) =>{
+            this.directData = data
+            this.depth = this.maxDepth
+            this.draw(this.graphData)
+            this.numLinks = this.graphData.links.length
+            this.numNodes = this.graphData.nodes.length 
+          })
         }
       })
     })
@@ -433,9 +449,11 @@ export default {
           .attr('fill',this.colorMap[data.type])
           .attr('r', 4)
           .attr('opacity', 1)
-        this.links.filter(link =>path.indexOf(link.source.fileid) !== -1 && path.indexOf(link.target.fileid) !== -1)
-          .attr('opacity', 1)
-          .attr('stroke-width', 1)
+        for(let i=0; i< path.length - 1; i++){
+          this.links.filter(link =>link.source.fileid === path[i] && link.target.fileid === path[i+1])
+            .attr('opacity', 1)
+            .attr('stroke-width', 1)
+        }
       })
     })
     this.$bus.$on('path-restored', () =>{
