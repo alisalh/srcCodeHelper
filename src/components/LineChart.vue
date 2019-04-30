@@ -17,6 +17,9 @@ export default {
   mounted() {
     this.svgWidth = Math.floor(this.$refs.root.clientWidth)
     this.svgHeight = Math.floor(this.$refs.root.clientHeight)
+    this.$bus.$on('depth-selected', ()=>{
+      d3.select('.areaG >*').remove()
+    })
   },
   watch: {
     lenDis(val) {

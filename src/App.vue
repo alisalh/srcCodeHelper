@@ -2,9 +2,6 @@
   <div id="app">
     <div class="left-panel">
       <div class='control-panel bl-card-shadow'>
-        <line-chart :lenDis="lenDis" :lenThreshold='lenThreshold' :maxLen='maxLen'>
-        </line-chart>
-        <!-- <bar-chart :colorMap="colorMap"></bar-chart> -->
       </div>
       <dep-hell-wrapper :root="treeRoot" :filesInfo="filesInfo" :maxDepth="maxDepth" :colorMap="colorMap">
       </dep-hell-wrapper>
@@ -12,7 +9,7 @@
     </div>
     <div class="center-panel">
       <div class="first-row bl-card-shadow">
-        <dep-path :graphData="graphData" :filesDist="filesDist" :root="treeRoot" :filesList="filesList" :maxDepth="maxDepth"></dep-path>
+        <dep-path :graphData="graphData" :filesDist="filesDist" :root="treeRoot" :filesList="filesList" :maxDepth="maxDepth" :colorMap='colorMap'></dep-path>
       </div>
       <div class="second-row bl-card-shadow">
         <parallel-coordinate :filesInfo="filesInfo" class='parallel-coordinate'></parallel-coordinate>
@@ -62,22 +59,13 @@ export default {
       coordinates: null,
       dependedData: null,
       dependingData: null,
-      lenDis: null,
-      colorMap: { long: '#d53e4f', indirect: '#66c2a5', direct: '#377eb8' },
-      lenThreshold: 0,
-      maxLen:9999
+      colorMap: { long: '#377eb8', indirect: '#66c2a5', direct: '#d53e4f' },
     }
   },
   updated() {
     console.log('app updated');
   },
   methods: {
-    // 通过slider改变len阈值时，重新向后台请求数据
-    filterLongDep(val){
-      this.lenThreshold=val
-      this.getDepsInfo()
-      this.getFilesInfo()
-    },
     getFilesList(){
       this.$axios.get('files/getFileList', {
         // 暂无参数
@@ -93,14 +81,6 @@ export default {
         let treeRoot = d3.hierarchy(data.root);
         treeRoot.sum(function(d) {return !d.children && d.type==='file' ? 1 : 0;})
         this.treeRoot = treeRoot
-      })
-    },
-    getLenDis(){
-      this.$axios.get('files/getLenDis', {
-        // 暂无参数
-      }).then(({ data }) => {
-        this.lenDis = data.lenDis
-        this.maxLen= data.maxLen
       })
     },
     getFilesInfo(){
@@ -165,7 +145,6 @@ export default {
   mounted() {
     this.getFilesList()
     this.getFolderHierarchy()
-    this.getLenDis()
     this.getFilesInfo()
     this.getFilesDist()
     this.getGraphData()

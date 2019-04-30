@@ -47,8 +47,15 @@ export default {
             // .attr('stroke-width', 0.5)
             .attr('fill', d => this.colorMap[d.type])
             .on('click', d => {
-               this.$bus.$emit('path-selected', d.id)
+                circle.attr('opacity', 0.01)
+                circle.filter(dot => dot.id === d.id).attr('opacity', 1)
+                this.$bus.$emit('path-selected', d.id)
+                d3.event.stopPropagation()
             })
+        this.svg.on('click', d=>{
+            circle.attr('opacity', 1)
+            this.$bus.$emit('path-restored', null)
+        })
       }
   },
     mounted(){

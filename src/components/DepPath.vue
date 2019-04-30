@@ -5,7 +5,7 @@
       <div class='other-div'>
         <div class='info-div'>
           <span>Graph: {{numNodes}} nodes, {{numLinks}} links</span>
-          <span>Filepath: {{path}}</span>
+          <span>File: {{path}}</span>
           <span>Type: {{type}}</span>
         </div>
         <div class='text-div'>Depth</div>
@@ -59,11 +59,12 @@ export default {
       depth: 6,   //vue: 1~6, d3: 2~4
     }
   },
-  props:['graphData', 'filesDist', 'root', 'filesList', 'maxDepth'],
+  props:['graphData', 'filesDist', 'root', 'filesList', 'maxDepth', 'colorMap'],
   methods: {
     selectThreshold(){
       // 选择depth后不能从散点图中选择路径
       this.$bus.$emit('threshold-restored', null)
+      this.$bus.$emit('depth-selected', null)
       this.updateGraph(this.depth)
     },
     updateGraph(depth){
@@ -206,9 +207,6 @@ export default {
         .attr('stroke', 'white')
         .on('click', (d) => {
           if(this.depth === this.maxDepth){
-            this.type = 'file'
-            this.path = this.filesList[d.fileid]
-              .replace(/E:\\Workspace\\Visualization\\srcCodeHelperServer\\data\\vue\\src\\/g, '')
             if(!this.isSelected){
               this.resetState()
               // 点击节点显示相似节点
@@ -251,6 +249,9 @@ export default {
                 this.drawSubGraph('compared', d.fileid, subGraphData)
               }
             })
+            this.type = 'file'
+            this.path = this.filesList[d.fileid]
+              .replace(/E:\\Workspace\\Visualization\\srcCodeHelperServer\\data\\vue\\src\\/g, '')
           } 
         })
         // .call(d3.drag()
@@ -444,13 +445,19 @@ export default {
         this.nodes.attr('opacity', 0.2)
         this.links.attr('opacity', 0.2)
         this.nodes.filter(node =>path.indexOf(node.fileid) !== -1)
-          .attr('fill','red')
+          .attr('fill',this.colorMap[data.type])
           .attr('r', 4)
           .attr('opacity', 1)
         this.links.filter(link =>path.indexOf(link.source.fileid) !== -1 && path.indexOf(link.target.fileid) !== -1)
           .attr('opacity', 1)
-          .attr('stroke-width', 1.5)
+          .attr('stroke-width', 1)
       })
+    })
+    this.$bus.$on('threshold-restored', () =>{
+      this.resetState()
+    })
+    this.$bus.$on('path-restored', () =>{
+      this.resetState()
     })
   }
 }

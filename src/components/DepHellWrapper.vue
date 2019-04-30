@@ -12,14 +12,13 @@ export default {
       svg: null,
       svgWidth: null,
       svgHeight: 0,
-      lenThreshold: null,
       dependedData: null,
       dependingData: null,
       maxDepended: 0, 
       maxDepending: 0,
       hierarchyHiehgt: 100,
-      legendHeight: 100,
-      legendData: [{type: 'long'}, {type: 'indirect'}, {type: 'direct'}],
+      legendHeight: 70,
+      legendData: [{type: 'indirect'}, {type: 'direct'}],
       stackHeight: 30,
       fileDepInfo: null, // store dep info for each file
       centerSvg: null,
@@ -187,115 +186,119 @@ export default {
       var linkG = this.svg.append('g')
         .attr('class','linkG')
         .attr('transform', 'translate(' + (this.svgWidth / 2 + 35) + ',' + this.svgHeight / 2 + ')')
-      let sourceColor = '#a2c7e6', targetColor = '#4682b4'
+      let sourceColor = '#d8e9f6', targetColor = '#3d7db2'
       node.on('click', d => {
         if(d.depth === this.maxDepth){
           this.$bus.$emit('file-selected', d.data.name)
-
-          // 添加引用和被引用连线
-          this.svg.selectAll('.linkG path').remove()
-          this.svg.selectAll('defs').remove()
-          let selectedFile = this.filesInfo.filter(file => file.id === d.data.id)
-          let source = selectedFile[0].fileInfo.depended,
-            target = selectedFile[0].fileInfo.depending
-          source.forEach(s => {
-            let temp = this.root.leaves().find(node => node.data.id === s)
-            let start = newArc.centroid(temp), end = newArc.centroid(d)
-            let linearGradient = this.svg.append('defs')
-              .append('linearGradient')
-              .attr('id', s+'linear-gradient')
-              .attr('gradientUnits','userSpaceOnUse')
-              .attr('x1', start[0])
-              .attr('y1', start[1])
-              .attr('x2', end[0])
-              .attr('y2', end[1])
-            linearGradient.append('stop')
-              .attr('offset', '0%')
-              .attr('stop-color', sourceColor)
-            linearGradient.append('stop')
-              .attr('offset', '33%')
-              .attr('stop-color', sourceColor)
-            linearGradient.append('stop')
-              .attr('offset', '66%')
-              .attr('stop-color', targetColor)
-            linearGradient.append('stop')
-              .attr('offset', '100%')
-              .attr('stop-color', targetColor)
-            linkG.append('path').attr('d', 'M'+start+'Q'+0+','+ 0+',' +end)
-              .attr('fill', 'none').attr('stroke', 'url(#'+s+'linear-gradient)')
-              .attr('stroke-width', 1.5)
-          })
-          target.forEach(t => {
-            let temp = this.root.leaves().find(node => node.data.id === t)
-            let start = newArc.centroid(d), end = newArc.centroid(temp)
-            let linearGradient = this.svg.append('defs')
-              .append('linearGradient')
-              .attr('id', t+'linear-gradient')
-              .attr('gradientUnits','userSpaceOnUse')
-              .attr('x1', start[0])
-              .attr('y1', start[1])
-              .attr('x2', end[0])
-              .attr('y2', end[1])
-            linearGradient.append('stop')
-              .attr('offset', '0%')
-              .attr('stop-color', sourceColor)
-            linearGradient.append('stop')
-              .attr('offset', '33%')
-              .attr('stop-color', sourceColor)
-            linearGradient.append('stop')
-              .attr('offset', '66%')
-              .attr('stop-color', targetColor)
-            linearGradient.append('stop')
-              .attr('offset', '100%')
-              .attr('stop-color', targetColor)
-            linkG.append('path').attr('d', 'M'+start+'Q'+0+','+ 0+',' +end)
-              .attr('fill', 'none').attr('stroke', 'url(#'+t+'linear-gradient)')
-              .attr('stroke-width', 1.5)
-          })
+          drawLinks(d)
+          node.filter(item => item.depth === this.maxDepth).attr('opacity', 0.2)
+        
         }
     })
 
-      // 添加文字
-      node
-        .append('text')
-        .style('cursor', 'default')
-        .style('font-size', 12+'px')
-        .attr('id', (d, i) => 'text'+i)
-        .attr('dy', function(d, i) { 
-          // vue
-          return (arc.centroid(d)[1] > 0 ? -4 : 11) 
+    // 添加文字
+    node
+      .append('text')
+      .style('cursor', 'default')
+      .style('font-size', 12+'px')
+      .attr('id', (d, i) => 'text'+i)
+      .attr('dy', function(d, i) { 
+        // vue
+        return (arc.centroid(d)[1] > 0 ? -4 : 11) 
 
-          // // d3
-          // return (arc.centroid(d)[1] > 0 ? -5 : 14) 
+        // // d3
+        // return (arc.centroid(d)[1] > 0 ? -5 : 14) 
+      })
+      .append('textPath')
+      .attr('startOffset','50%')
+      .style('text-anchor','middle')
+      .attr('xlink:href', (d, i) => '#donutArc'+i)
+      .text(function(d, i){
+        if(d.data.type === 'dir'){
+          let firstArc = (/(^.+?)L/).exec(arc(d))[1]
+          let startPoint = (/M(.*?)A/).exec(firstArc)[1].split(','),
+            endPoint = firstArc.split(',').slice(-2)
+          let distX = startPoint[0]-endPoint[0],
+            distY = startPoint[1]-endPoint[1]
+          let dist = Math.sqrt(distX * distX + distY * distY)
+          let name = d.data.name.substr(d.data.name.lastIndexOf('\\') + 1)
+          if(dist < name.length*10)
+            return '...'
+          else return name
+        }
+      })
+      
+      function drawLinks(d){
+        // 添加引用和被引用连线
+        vm.svg.selectAll('.linkG path').remove()
+        vm.svg.selectAll('defs').remove()
+        let selectedFile = vm.filesInfo.filter(file => file.id === d.data.id)
+        let source = selectedFile[0].fileInfo.depended,
+          target = selectedFile[0].fileInfo.depending
+        source.forEach(s => {
+          let temp = vm.root.leaves().find(node => node.data.id === s)
+          let start = newArc.centroid(temp), end = newArc.centroid(d)
+          let linearGradient = vm.svg.append('defs')
+            .append('linearGradient')
+            .attr('id', s+'linear-gradient')
+            .attr('gradientUnits','userSpaceOnUse')
+            .attr('x1', start[0])
+            .attr('y1', start[1])
+            .attr('x2', end[0])
+            .attr('y2', end[1])
+          linearGradient.append('stop')
+            .attr('offset', '0%')
+            .attr('stop-color', sourceColor)
+          linearGradient.append('stop')
+            .attr('offset', '33%')
+            .attr('stop-color', sourceColor)
+          linearGradient.append('stop')
+            .attr('offset', '66%')
+            .attr('stop-color', targetColor)
+          linearGradient.append('stop')
+            .attr('offset', '100%')
+            .attr('stop-color', targetColor)
+          linkG.append('path').attr('d', 'M'+start+'Q'+0+','+ 0+',' +end)
+            .attr('fill', 'none').attr('stroke', 'url(#'+s+'linear-gradient)')
+            .attr('stroke-width', 1.5)
         })
-        .append('textPath')
-        .attr('startOffset','50%')
-        .style('text-anchor','middle')
-        .attr('xlink:href', (d, i) => '#donutArc'+i)
-        .text(function(d, i){
-          if(d.data.type === 'dir'){
-            let firstArc = (/(^.+?)L/).exec(arc(d))[1]
-            let startPoint = (/M(.*?)A/).exec(firstArc)[1].split(','),
-              endPoint = firstArc.split(',').slice(-2)
-            let distX = startPoint[0]-endPoint[0],
-              distY = startPoint[1]-endPoint[1]
-            let dist = Math.sqrt(distX * distX + distY * distY)
-            let name = d.data.name.substr(d.data.name.lastIndexOf('\\') + 1)
-            if(dist < name.length*10)
-              return '...'
-            else return name
-          }
+        target.forEach(t => {
+          let temp = vm.root.leaves().find(node => node.data.id === t)
+          let start = newArc.centroid(d), end = newArc.centroid(temp)
+          let linearGradient = vm.svg.append('defs')
+            .append('linearGradient')
+            .attr('id', t+'linear-gradient')
+            .attr('gradientUnits','userSpaceOnUse')
+            .attr('x1', start[0])
+            .attr('y1', start[1])
+            .attr('x2', end[0])
+            .attr('y2', end[1])
+          linearGradient.append('stop')
+            .attr('offset', '0%')
+            .attr('stop-color', sourceColor)
+          linearGradient.append('stop')
+            .attr('offset', '33%')
+            .attr('stop-color', sourceColor)
+          linearGradient.append('stop')
+            .attr('offset', '66%')
+            .attr('stop-color', targetColor)
+          linearGradient.append('stop')
+            .attr('offset', '100%')
+            .attr('stop-color', targetColor)
+          linkG.append('path').attr('d', 'M'+start+'Q'+0+','+ 0+',' +end)
+            .attr('fill', 'none').attr('stroke', 'url(#'+t+'linear-gradient)')
+            .attr('stroke-width', 1.5)
         })
+      }
     },
     drawRadialStack(data) {
       //get StackData from badDeps
-      let keys = ['long', 'indirect', 'direct'].map(d => `${d}-count`),
+      let keys = ['indirect', 'direct'].map(d => `${d}-count`),
         stack = d3.stack().keys(keys)
       this.fileDepInfo = []
       this.root.leaves().forEach(node => {
         let fileid = node.data.id, stackItem = {fileid}
         let stackData = data.find(d => d.fileid === fileid)
-        stackItem['long-count'] = Math.log(stackData['long']+1)
         stackItem['indirect-count'] = Math.log(stackData['indirect']+1)
         stackItem['direct-count'] = Math.log(stackData['direct']+1)
         this.fileDepInfo.push(stackItem)
@@ -327,21 +330,6 @@ export default {
     }
   },
   watch: {
-    lenThreshold(val){
-      if(val || val === 0){
-        this.$axios.get('files/getStackData', {
-          threshold: val
-        }).then(({ data }) => {
-          this.drawRadialStack(data)
-        })
-        this.$axios.get('files/getBarData', {
-          threshold: val
-        }).then(({ data }) => {
-          this.drawLegend(data)
-        })
-      }
-        
-    },
   },
   created(){
     const requiredData = ['root', 'filesInfo', 'maxDepth']
@@ -353,7 +341,10 @@ export default {
           this.dataAdapter()
           this.drawHierachy()
           this.drawColorBar(this.colorData)
-          this.lenThreshold = 0
+          this.$axios.get('files/getStackData', {
+          }).then(({ data }) => {
+            this.drawRadialStack(data)
+          })
         }
       })
     })
@@ -364,11 +355,9 @@ export default {
     this.svg = d3.select(this.$refs.root).append('svg')
       .attr('width', this.svgWidth)
       .attr('height', this.svgHeight)
-    this.$bus.$on('threshold-selected', d =>{
-      this.lenThreshold = d
-    })
-    this.$bus.$on('threshold-restored', ()=>{
-      this.lenThreshold = 0
+    this.$axios.get('files/getBarData', {
+    }).then(({ data }) => {
+      this.drawLegend(data)
     })
   }
 }
