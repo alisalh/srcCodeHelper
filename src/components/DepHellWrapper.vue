@@ -16,12 +16,14 @@ export default {
       dependingData: null,
       maxDepended: 0, 
       maxDepending: 0,
+      dependType: '1', // '1'表示被其他文件引用，'2'表示引用其他文件
       hierarchyHiehgt: 100,
       legendHeight: 60,
       legendData: [{type: 'indirect'}, {type: 'direct'}],
       stackHeight: 30,
       fileDepInfo: null, // store dep info for each file
       centerSvg: null,
+      node: null,
       colorData:['#662506', '#993404','#cc4c02','#ec7014','#fe9929','#fec44f','#fee391','#fff7bc']
     }
   },
@@ -128,8 +130,8 @@ export default {
       var linear = d3.scaleLinear().domain([1, this.maxDepended]).range([0, 1])
       
       //partition the tree and attach additional attr on root as well as its descendants
-      var node = hierarchyG.selectAll(".hierarchy-node").data(partition(this.root).descendants().slice(1)).enter().append("g")
-      node.append("path")
+      this.node = hierarchyG.selectAll(".hierarchy-node").data(partition(this.root).descendants().slice(1)).enter().append("g")
+      this.node.append("path")
         .attr("class", "hierarchy-node")
         .attr('id', (d, i) => 'hierarchy-node-'+i)
         .attr("d", arc)
@@ -152,7 +154,7 @@ export default {
         .each((d, i) => {
           if(d.data.type === 'dir'){
             var firstArcSection = /(^.+?)L/
-            let curNode = node.select('#hierarchy-node-'+i)
+            let curNode = this.node.select('#hierarchy-node-'+i)
             var newArc = firstArcSection.exec(curNode.attr('d'))[1]
             newArc = newArc.replace(/,/g, ' ')
             if(arc.centroid(d)[1] > 0){
@@ -164,7 +166,7 @@ export default {
                 middleSec = middleLoc.exec(newArc)[1]
               newArc = 'M' + newStart + 'A' + middleSec + '0 0 0' + newEnd 
             }
-            node.append('path')
+            this.node.append('path')
               .attr('class', 'hiddenDonutArcs')
               .attr('id', 'donutArc'+i)
               .attr('d', newArc)
@@ -187,15 +189,18 @@ export default {
         .attr('class','linkG')
         .attr('transform', 'translate(' + this.svgWidth / 2 + ',' + (this.svgHeight / 2 + 30) + ')')
       let sourceColor = '#d8e9f6', targetColor = '#3d7db2'
-      node.on('click', d => {
+      this.node.on('click', d => {
         if(d.depth === this.maxDepth){
           this.$bus.$emit('file-selected', d.data.name)
-          drawSourceLinks(d)
+          if(this.dependType === '1')
+            drawSourceLinks(d)
+          if(this.dependType === '2')
+            drawTargetLinks(d)
         }
     })
 
     // 添加文字
-    node
+    this.node
       .append('text')
       .style('cursor', 'default')
       .style('font-size', 12+'px')
@@ -261,6 +266,42 @@ export default {
             .attr('stroke-width', 1.5)
         })
       }
+
+       //绘制引用的连线
+      function drawTargetLinks(d){
+        // 添加引用和被引用连线
+        vm.svg.selectAll('.linkG path').remove()
+        vm.svg.selectAll('defs').remove()
+        let selectedFile = vm.filesInfo.filter(file => file.id === d.data.id)
+        let source = selectedFile[0].fileInfo.depending
+        source.forEach(s => {
+          let temp = vm.root.leaves().find(node => node.data.id === s)
+          let start = newArc.centroid(temp), end = newArc.centroid(d)
+          let linearGradient = vm.svg.append('defs')
+            .append('linearGradient')
+            .attr('id', s+'linear-gradient')
+            .attr('gradientUnits','userSpaceOnUse')
+            .attr('x1', start[0])
+            .attr('y1', start[1])
+            .attr('x2', end[0])
+            .attr('y2', end[1])
+          linearGradient.append('stop')
+            .attr('offset', '0%')
+            .attr('stop-color', targetColor)
+          linearGradient.append('stop')
+            .attr('offset', '33%')
+            .attr('stop-color', targetColor)
+          linearGradient.append('stop')
+            .attr('offset', '66%')
+            .attr('stop-color', sourceColor)
+          linearGradient.append('stop')
+            .attr('offset', '100%')
+            .attr('stop-color', sourceColor)
+          linkG.append('path').attr('d', 'M'+start+'Q'+0+','+ 0+',' +end)
+            .attr('fill', 'none').attr('stroke', 'url(#'+s+'linear-gradient)')
+            .attr('stroke-width', 1.5)
+        })
+      }
     },
     drawRadialStack(data) {
       //get StackData from badDeps
@@ -301,6 +342,44 @@ export default {
     }
   },
   watch: {
+    dependType(val){
+      if(val === '1'){
+        var a = d3.rgb(254,227,145), b = d3.rgb(102,37,6)
+        var compute = d3.interpolate(a, b)
+        var linear = d3.scaleLinear().domain([1, this.maxDepended]).range([0, 1])
+        this.node.select('.hierarchy-node').style('fill', () => '#fff7bc')
+        this.node.select('.hierarchy-node').style("fill", d => {
+          if (d.data.type === "dir")
+            return "#fed9a6"
+          if(d.depth === this.maxDepth){
+            let temp = this.dependedData.find(item => item.fileid === d.data.id)
+            if(temp.depended > 0)
+              return compute(linear(temp.depended))
+            else
+              return '#fff7bc'
+          }
+          return '#ece4d5'
+        })
+      }
+      if(val === '2'){
+        var a = d3.rgb(254,227,145), b = d3.rgb(102,37,6)
+        var compute = d3.interpolate(a, b)
+        var linear = d3.scaleLinear().domain([1, this.maxDepending]).range([0, 1])
+        this.node.select('.hierarchy-node').style('fill', () => '#fff7bc')
+        this.node.select('.hierarchy-node').style("fill", d => {
+          if (d.data.type === "dir")
+            return "#fed9a6"
+          if(d.depth === this.maxDepth){
+            let temp = this.dependingData.find(item => item.fileid === d.data.id)
+            if(temp.depending > 0)
+              return compute(linear(temp.depending))
+            else
+              return '#fff7bc'
+          }
+          return '#ece4d5'
+        })
+      }
+    }
   },
   created(){
     const requiredData = ['root', 'filesInfo', 'maxDepth']
@@ -329,6 +408,9 @@ export default {
     this.$axios.get('files/getBarData', {
     }).then(({ data }) => {
       this.drawLegend(data)
+    })
+    this.$bus.$on('depend-type-selected', d =>{
+      this.dependType = d
     })
   }
 }

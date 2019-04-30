@@ -2,6 +2,23 @@
   <div id="app">
     <div class="left-panel">
       <div class='control-panel bl-card-shadow'>
+        <div class='slider-wrapper'>
+          <div class='text-div'>Depth</div>
+          <div class='slider-div'>
+            <el-slider v-model="curDepth" :step="1" 
+              show-stops :min="1" :max="6" size="mini">
+            </el-slider>
+            <el-input v-model="curDepth" size="mini"></el-input>
+          </div>
+        </div>
+        <div class='ratio-wrapper'>
+          <div class='text-div'>Type</div>
+          <div class='ratio-div'>
+            <el-radio v-model="isSelected" label="1">Depended</el-radio>
+            <el-radio v-model="isSelected" label="2">Depending</el-radio>
+          </div>
+        </div>
+        <div class='others'></div>
       </div>
       <dep-hell-wrapper :root="treeRoot" :filesInfo="filesInfo" :maxDepth="maxDepth" :colorMap="colorMap">
       </dep-hell-wrapper>
@@ -52,6 +69,8 @@ export default {
       selectedFileName: 'None',
       treeRoot: null,
       maxDepth: 0,
+      curDepth: 6, //vue: 1~6, d3: 2~4
+      isSelected: '1',
       filesInfo: null,
       filesDist: null,
       filesList: null,
@@ -64,6 +83,16 @@ export default {
   },
   updated() {
     console.log('app updated');
+  },
+  watch: {
+    curDepth(val){
+      if(val)
+        this.$bus.$emit('depth-selected', val)
+    },
+    isSelected(val){
+      if(val)
+        this.$bus.$emit('depend-type-selected', val)
+    }
   },
   methods: {
     getFilesList(){
@@ -178,12 +207,64 @@ html {
       margin-bottom: 3px;
       display: flex;
       flex-direction: column;
-      // .line-chart{
-      //   flex: 1;
-      // }
-      // .bar-chart{
-      //   flex: 1.2;
-      // }
+      font-size: 14px;
+      .slider-wrapper{
+        padding: 25px 20px 0px;
+        flex: 1;
+        display: flex;
+        .text-div{
+          flex: 1;
+        }
+        .slider-div{
+          flex: 4;
+          display: flex;
+          margin-right: 50px;
+          .el-slider{
+            margin-right: 10px;
+            flex: 3;
+            .el-slider__runway{
+              margin-top: 5px;
+              height: 5px;
+            }
+            .el-slider__bar {
+              height: 5px;
+              background-color: #abadaf;
+            }
+            .el-slider__button{
+              border: 2px solid #b8b9bc;
+              height: 13px;
+              width: 13px;
+            }
+            .el-slider__stop {
+              height: 5px;
+              width: 5px;
+            }
+          }
+          .el-input{
+            flex: 0.5;
+            margin-top: -8px;
+            margin-right: 5px;
+          }
+        }
+      }
+      .ratio-wrapper{
+        flex: 1;
+        padding: 0px 20px 0px;
+        display: flex;
+        .text-div{
+          flex: 0.99;
+        }
+        .ratio-div{
+          flex: 5;
+          .el-radio__inner {            
+            width: 12px;
+            height: 12px;
+          }
+        }
+      }
+      .others{
+        flex: 1;
+      }
     }
     .dep-hell-wrapper {
       flex: 4.3;
