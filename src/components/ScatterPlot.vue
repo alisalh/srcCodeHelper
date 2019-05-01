@@ -50,7 +50,6 @@ export default {
             .attr('cy', d => y(parseFloat(d.y)))
             .attr('fill', d => this.colorMap[d.type])
             .on('click', d => {
-                console.log(d)
                 circle.attr('opacity', 0.3)
                 circle.filter(dot => dot.id === d.id).attr('opacity', 1)
                 this.$bus.$emit('path-selected', d.id)

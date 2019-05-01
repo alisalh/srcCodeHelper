@@ -32,16 +32,17 @@ export default {
   display: flex;
   flex-direction: column;
   .title{
-    flex: 0.5;
+    flex: 0.4;
     background-color:rgb(245, 245, 245);
-    font-size: 18px;
-    padding-top: 10px;
+    font-size: 16px;
+    padding-top: 3px;
     text-align: center;
   }
   .content{
     overflow: auto;
     flex: 15;
     font-weight: bold;
+    font-size: 16px;
   }
 }
 .hljs{

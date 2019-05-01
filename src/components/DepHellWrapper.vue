@@ -42,7 +42,7 @@ export default {
         .attr('class', 'bar')
         .attr('transform', 'translate(265, 22)')
       colorBarG.append('text')
-        .text('more')
+        .text('More')
         .attr('font-size', 14)
         .attr('dy', '1em')
         .attr('dx', '-2.5em')
@@ -54,7 +54,7 @@ export default {
           .attr('fill', d)
       })
       colorBarG.append('text')
-        .text('less')
+        .text('Less')
         .attr('font-size', 14)
         .attr('x', data.length*20)
         .attr('dy', '1em')
@@ -90,7 +90,12 @@ export default {
         })
         .attr('dx', 1+'em')
         .attr('dy', 0.35+'em')
-        .text(d => d.type+": "+d.num)
+        .text(d => {
+          if(d.type === 'indirect')
+            return "Indirect: "+d.num
+          else
+            return "Direct: "+d.num
+        })
         .attr('font-size', 15)
     },
     dataAdapter(){

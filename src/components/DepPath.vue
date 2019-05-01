@@ -10,14 +10,14 @@
       <div class='subgraph-div'>
         <div class="header">
           <div class="title">Selected Node</div>
-          <i class="el-icon-close"></i>
+          <!-- <i class="el-icon-close"></i> -->
         </div>
         <div class='subgraph-content' id='selected' ref='root2'></div>
       </div>
       <div class='compared-div'>
         <div class="header">
           <div class="title">Compared Node</div>
-          <i class="el-icon-close"></i>
+          <!-- <i class="el-icon-close"></i> -->
         </div>
         <div class='subgraph-content' id='compared'></div>
       </div> 
@@ -442,7 +442,6 @@ export default {
         if(d.type !== 'long'){
           path.push(path[0])
         }
-        console.log(path)
         this.resetState()
         this.nodes.attr('opacity', 0.2)
         this.links.attr('opacity', 0.2)
@@ -506,14 +505,9 @@ export default {
         flex: 1;
         background-color:rgb(245, 245, 245);
         font-size: 14px;
-        display: flex;
         .title{
-          padding: 5px 5px;
-          flex: 9;
-        }
-        .el-icon-close{
-            padding-top: 5px;
-            flex: 1;
+          text-align: center;
+          padding-top: 3px;
         }
       }
       .subgraph-content{

@@ -186,7 +186,7 @@ export default {
 html {
   height: 100%;
   body {
-    height: 95%;
+    height: 92%;
   }
 }
 
@@ -260,6 +260,13 @@ html {
             width: 12px;
             height: 12px;
           }
+          .el-radio__input.is-checked .el-radio__inner {
+            border-color:#abadaf;
+            background: #abadaf;
+          }
+          .el-radio__input.is-checked+.el-radio__label {
+            color: #606266;
+          }
         }
       }
       .others{
@@ -271,7 +278,7 @@ html {
       margin-bottom: 3px;
     }
     .scatter-plot{
-      flex: 2.3;
+      flex: 2.2;
     }
   }
   .center-panel {
@@ -284,7 +291,7 @@ html {
       margin-bottom: 3px;
     }
     .second-row {
-      flex: 1.2;
+      flex: 1.19;
     } 
   }
   .right-panel{
