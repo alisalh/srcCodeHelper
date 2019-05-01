@@ -437,6 +437,12 @@ export default {
     this.$bus.$on('depend-type-selected', d =>{
       this.dependType = d
     })
+    this.$bus.$on('files-selected', d =>{
+      this.node.filter(node => node.depth === this.maxDepth)
+        .attr('opacity', 0.1)
+      this.node.filter(node => node.depth === this.maxDepth && d.indexOf(node.data.id) != -1)
+        .attr('opacity', 1)
+    })
   }
 }
 

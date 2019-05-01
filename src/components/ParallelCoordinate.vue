@@ -13,6 +13,7 @@ export default {
       chartData: null,
       dimensions: ['func', 'depending', 'depended', 'direct', 'indirect', 'size'],
       extents: null,
+      fileids: null,
       y: {}
     }
   },
@@ -58,7 +59,6 @@ export default {
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
       x.domain(this.dimensions);
-      // console.log(x('func'))
       this.dimensions.forEach((d) => {
         this.y[d] = d3.scaleLinear()
           .domain(d3.extent(this.chartData, function(p) {
@@ -108,7 +108,9 @@ export default {
           d3.select(this).call(that.y[d].brush = d3.brushY().extent([
             [-8, 0],
             [8, height]
-          ]).on("brush start", that.brushstart.bind(that)).on("brush", that.brushParallelChart.bind(that)));
+          ])
+          .on("brush start", that.brushstart.bind(that))
+          .on("brush", that.brushParallelChart.bind(that)));
         })
         .selectAll("rect")
         .attr("x", -8)
@@ -124,17 +126,15 @@ export default {
           fileInfo[dim] = val.hasOwnProperty('length') ? val.length : val
         })
         return Object.assign({}, {
-          name: d.name,
+          id: d.id,
           ...fileInfo
         })
       })
     },
     brushstart() {
-      // console.log('brush start')
       d3.event.sourceEvent.stopPropagation();
     },
     brushParallelChart() {
-      // console.log(this.extents)
       const that = this
       for (var i = 0; i < this.dimensions.length; ++i) {
         const dim = this.dimensions[i]
@@ -143,6 +143,7 @@ export default {
           this.extents[i] = d3.event.selection.map(this.y[dim].invert, this.y[dim]);
         }
       }
+      this.fileids = []
       d3.selectAll('.foreground>path').style("display", function(d) {
         let shouldDisplay = false
         shouldDisplay = that.dimensions.every(function(p, i) {
@@ -151,18 +152,17 @@ export default {
           }
           return that.extents[i][1] <= d[p] && d[p] <= that.extents[i][0];
         })
-        if (shouldDisplay) console.log(d.name,d)
+        if (shouldDisplay) that.fileids.push(d.id)
         return shouldDisplay ? null : 'none'
       });
+      this.$bus.$emit('files-selected', this.fileids)
     }
   },
   mounted() {
     let x = d3.scaleOrdinal().range([0, 1000]).domain(['a', 'b', 'c'])
-    // console.log(x('a'), x('b'), x('c'))
     this.svgWidth = Math.floor(this.$refs.root.clientWidth)
     this.svgHeight = Math.floor(this.$refs.root.clientHeight)
     this.extents = this.dimensions.map(function(p) { return [0, 0]; })
-    // console.log(this.svgWidth, this.svgHeight, this.extents)
   }
 }
 

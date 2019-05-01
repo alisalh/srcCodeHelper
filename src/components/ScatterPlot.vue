@@ -52,6 +52,7 @@ export default {
             .on('click', d => {
                 circle.attr('opacity', 0.3)
                 circle.filter(dot => dot.id === d.id).attr('opacity', 1)
+                    .attr('stroke', '#4393c3').attr('stroke-width', 2)
                 this.$bus.$emit('path-selected', d.id)
                 d3.event.stopPropagation()
             })

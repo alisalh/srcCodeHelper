@@ -129,7 +129,6 @@ export default {
        this.$axios.get('files/getFilesInfo', {
         // 暂无参数
       }).then(({ data }) => {
-        console.log(data)
         this.filesInfo = data
       })
     },

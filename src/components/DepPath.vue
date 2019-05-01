@@ -226,7 +226,7 @@ export default {
             }
             else{
               // 比较节点的stroke上色
-              this.nodes.filter(node => node.fileid === d.fileid).attr('stroke', '#4393c3').attr('stroke-width', 1.5)
+              this.nodes.filter(node => node.fileid === d.fileid).attr('stroke', '#4393c3').attr('stroke-width', 2)
             }
             d3.event.stopPropagation()
 
