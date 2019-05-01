@@ -2,13 +2,22 @@
   <div id="app">
     <div class="left-panel">
       <div class='control-panel bl-card-shadow'>
-        <div class='slider-wrapper'>
+        <div class='slider-wrapper depth'>
           <div class='text-div'>Depth</div>
           <div class='slider-div'>
             <el-slider v-model="curDepth" :step="1" 
               show-stops :min="1" :max="6" size="mini">
             </el-slider>
             <el-input v-model="curDepth" size="mini"></el-input>
+          </div>
+        </div>
+        <div class='slider-wrapper number'>
+          <div class='text-div'>Number</div>
+          <div class='slider-div'>
+            <el-slider v-model="similarNum" :step="1"
+              :min="1" :max="20" size="mini">
+            </el-slider>
+            <el-input v-model="similarNum" size="mini"></el-input>
           </div>
         </div>
         <div class='ratio-wrapper'>
@@ -18,7 +27,6 @@
             <el-radio v-model="isSelected" label="2">Depending</el-radio>
           </div>
         </div>
-        <div class='others'></div>
       </div>
       <dep-hell-wrapper :root="treeRoot" :filesInfo="filesInfo" :maxDepth="maxDepth" :colorMap="colorMap">
       </dep-hell-wrapper>
@@ -70,6 +78,7 @@ export default {
       treeRoot: null,
       maxDepth: 0,
       curDepth: 6, //vue: 1~6, d3: 2~4
+      similarNum: 10,
       isSelected: '1',
       filesInfo: null,
       filesDist: null,
@@ -92,6 +101,10 @@ export default {
     isSelected(val){
       if(val)
         this.$bus.$emit('depend-type-selected', val)
+    },
+    similarNum(val){
+      if(val)
+        this.$bus.$emit('similar-number-selected', val)
     }
   },
   methods: {
@@ -245,6 +258,12 @@ html {
             margin-top: -8px;
             margin-right: 5px;
           }
+        }
+      }
+      .number{
+        padding-top: 2px;
+        .el-input__inner{
+          padding-left: 12px;
         }
       }
       .ratio-wrapper{

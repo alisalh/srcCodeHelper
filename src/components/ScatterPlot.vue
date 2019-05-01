@@ -21,7 +21,7 @@ export default {
       draw(data){
         d3.select(this.$refs.root).selectAll('svg *').remove()
         // const margin ={top: 70, right: 100, bottom: 50, left: 70} //d3
-        const margin ={top: 50, right: 30, bottom: 50, left: 30} //vue
+        const margin ={top: 30, right: 30, bottom: 30, left: 30} //vue
         const height = this.svgHeight,
             width = this.svgWidth
         const x = d3

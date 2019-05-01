@@ -47,7 +47,11 @@ export default {
       subSvgHeight: 0,
       isSelected: false,
       depth: 0,
-      directData: null 
+      directData: null,
+      //用于更新相似节点
+      num: 10,
+      obj: null,
+      selectId: null
     }
   },
   props:['graphData', 'filesDist', 'root', 'filesList', 'maxDepth', 'colorMap'],
@@ -201,13 +205,14 @@ export default {
               this.resetState()
               // 点击节点显示相似节点
               let dist = this.filesDist.filter(dist => parseInt(dist.id) === d.fileid)[0],
-                    obj = [], fileid = [], val = []
+                  fileid = [], val = []
+              this.obj = []
               for(var key in dist)
-                obj.push({key: key, val: dist[key]})
-              obj.sort(up)
-              for(let i=0; i<11; i++){
-                fileid.push(parseInt(obj[i].key))
-                val.push(parseFloat(obj[i].val))
+                this.obj.push({key: key, val: dist[key]})
+              this.obj.sort(up)
+              for(let i=0; i<this.num+1; i++){
+                fileid.push(parseInt(this.obj[i].key))
+                val.push(parseFloat(this.obj[i].val))
               }
               var linear = d3.scaleLinear().domain([Math.min(...val), Math.max(...val)]).range([0, 1])
               fileid.forEach((id, i) =>{
@@ -216,6 +221,7 @@ export default {
                   .attr('r', 4)
               })
               // 当前点击节点的半径最大
+              this.selectId = d.fileid
               this.nodes.filter(node => node.fileid === d.fileid).attr('r', 6)
             }
             else{
@@ -324,6 +330,7 @@ export default {
       this.isSelected = false
       this.type = null
       this.path = null
+      this.obj = null
       d3.select('#selected').select('svg').remove()
       d3.select('#compared').select('svg').remove()
     },
@@ -462,6 +469,29 @@ export default {
     this.$bus.$on('depth-selected', d =>{
       this.depth = d
       this.updateGraph(this.depth)
+    })
+    this.$bus.$on('similar-number-selected', d => {
+      this.num = d
+      if(this.isSelected){
+        // 还原初始半径和颜色
+        this.nodes.attr('fill', this.color)
+          .attr('r', this.defaultR)
+        var fileid = [], val = []
+        for(let i=0; i<this.num+1; i++){
+          fileid.push(parseInt(this.obj[i].key))
+          val.push(parseFloat(this.obj[i].val))
+        }
+        // 颜色色卡
+        var a = d3.rgb(165,0,38), b = d3.rgb(253,174,97)
+        var compute = d3.interpolate(a, b)
+        var linear = d3.scaleLinear().domain([Math.min(...val), Math.max(...val)]).range([0, 1])
+        fileid.forEach((id, i) =>{
+          this.nodes.filter(node => node.fileid === id)
+            .attr('fill', compute(linear(val[i])))
+            .attr('r', 4)
+        })
+        this.nodes.filter(node => node.fileid === this.selectId).attr('r', 6)
+      }
     })
   }
 }
