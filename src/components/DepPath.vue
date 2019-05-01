@@ -261,7 +261,11 @@ export default {
           this.resetState()
       })
       this.nodes.append("title")
-        .text(function(d) { return d.id; })
+        .text((d) => {
+          let name = this.filesList[d.fileid]
+              .replace(/E:\\Workspace\\Visualization\\srcCodeHelperServer\\data\\vue\\src\\/g, '')
+          return name.substr(name.lastIndexOf('\\')+1)
+        })
 
       function boundX(d){
         if(d < 0)
@@ -450,8 +454,8 @@ export default {
           path.push(path[0])
         }
         this.resetState()
-        this.nodes.attr('opacity', 0.2)
-        this.links.attr('opacity', 0.2)
+        this.nodes.attr('opacity', 0.2).attr('r', this.defaultR)
+        this.links.attr('opacity', 0.2).attr('stroke-width', 0.3)
         this.nodes.filter(node =>path.indexOf(node.fileid) !== -1)
           .attr('fill',this.colorMap[data.type])
           .attr('r', 4)
@@ -466,9 +470,23 @@ export default {
     this.$bus.$on('path-restored', () =>{
       this.resetState()
     })
+    this.$bus.$on('fileid-restored', () => {
+      this.resetState()
+    })
     this.$bus.$on('depth-selected', d =>{
       this.depth = d
       this.updateGraph(this.depth)
+    })
+    this.$bus.$on('fileid-selected', d =>{
+      this.nodes.attr('opacity', 0.2).attr('r', this.defaultR)
+      this.links.attr('opacity', 0.2).attr('stroke-width', 0.3)
+      this.nodes.filter(node => d.nodes.indexOf(node.fileid) != -1 || node.fileid === d.fileid)
+        .attr('r', 4)
+        .attr('opacity', 1)
+      this.links.filter(link => (link.target.fileid === d.fileid && d.nodes.indexOf(link.source.fileid) != -1)
+                              || (link.source.fileid === d.fileid && d.nodes.indexOf(link.target.fileid) != -1))
+        .attr('opacity', 1)
+        .attr('stroke-width', 1)
     })
     this.$bus.$on('similar-number-selected', d => {
       this.num = d

@@ -143,6 +143,7 @@ export default {
         .style("stroke", d => {
           return 'white'
         })
+        .attr('stroke-opacity', 0.3)
         .style("fill", function(d) {
           if (d.data.type === "dir")
             return "#fed9a6"
@@ -194,19 +195,29 @@ export default {
         .attr('class','linkG')
         .attr('transform', 'translate(' + this.svgWidth / 2 + ',' + (this.svgHeight / 2 + 30) + ')')
       let sourceColor = '#d8e9f6', targetColor = '#3d7db2'
-      this.node.on('click', d => {
+      this.node.on('click', (d,i) => {
+        this.node.select('.hierarchy-node')
+          .style('stroke','white')
+          .attr('stroke-opacity', 0.3)
         if(d.depth === this.maxDepth){
           this.$bus.$emit('file-selected', d.data.name)
           if(this.dependType === '1')
             drawSourceLinks(d)
           if(this.dependType === '2')
             drawTargetLinks(d)
+          this.node.select('#hierarchy-node-'+i)
+            .style('stroke','red')
+            .attr('stroke-opacity', 1)
         }
         d3.event.stopPropagation()
       })
       this.svg.on('click', d=>{
+        this.$bus.$emit('fileid-restored', null)
         this.svg.selectAll('.linkG path').remove()
         this.svg.selectAll('defs').remove()
+        this.node.select('.hierarchy-node')
+          .style('stroke','white')
+          .attr('stroke-opacity', 0.3)
       })
 
     // 添加文字
@@ -248,6 +259,7 @@ export default {
         vm.svg.selectAll('defs').remove()
         let selectedFile = vm.filesInfo.filter(file => file.id === d.data.id)
         let source = selectedFile[0].fileInfo.depended
+        vm.$bus.$emit('fileid-selected', {fileid: d.data.id, nodes: source})
         source.forEach(s => {
           let temp = vm.root.leaves().find(node => node.data.id === s)
           let start = newArc.centroid(temp), end = newArc.centroid(d)
@@ -284,6 +296,7 @@ export default {
         vm.svg.selectAll('defs').remove()
         let selectedFile = vm.filesInfo.filter(file => file.id === d.data.id)
         let source = selectedFile[0].fileInfo.depending
+        vm.$bus.$emit('fileid-selected', {fileid: d.data.id, nodes: source})
         source.forEach(s => {
           let temp = vm.root.leaves().find(node => node.data.id === s)
           let start = newArc.centroid(temp), end = newArc.centroid(d)
