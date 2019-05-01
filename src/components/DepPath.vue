@@ -442,6 +442,7 @@ export default {
         if(d.type !== 'long'){
           path.push(path[0])
         }
+        console.log(path)
         this.resetState()
         this.nodes.attr('opacity', 0.2)
         this.links.attr('opacity', 0.2)

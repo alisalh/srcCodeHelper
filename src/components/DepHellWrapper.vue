@@ -197,7 +197,12 @@ export default {
           if(this.dependType === '2')
             drawTargetLinks(d)
         }
-    })
+        d3.event.stopPropagation()
+      })
+      this.svg.on('click', d=>{
+        this.svg.selectAll('.linkG path').remove()
+        this.svg.selectAll('defs').remove()
+      })
 
     // 添加文字
     this.node
@@ -343,6 +348,8 @@ export default {
   },
   watch: {
     dependType(val){
+      this.svg.selectAll('.linkG path').remove()
+      this.svg.selectAll('defs').remove()
       if(val === '1'){
         var a = d3.rgb(254,227,145), b = d3.rgb(102,37,6)
         var compute = d3.interpolate(a, b)

@@ -267,11 +267,11 @@ html {
       }
     }
     .dep-hell-wrapper {
-      flex: 4.3;
+      flex: 4.5;
       margin-bottom: 3px;
     }
     .scatter-plot{
-      flex: 2.5;
+      flex: 2.3;
     }
   }
   .center-panel {

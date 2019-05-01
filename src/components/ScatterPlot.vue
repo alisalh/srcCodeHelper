@@ -12,15 +12,17 @@ export default {
         xScale: null,
         yScale: null, 
         svg: null,
-        maxLen: 0
+        maxLen: 0,
+        minLen: 0
     }
   },
   props:['filteredCoordinates', 'colorMap'],
   methods: {
       draw(data){
-          d3.select(this.$refs.root).selectAll('svg *').remove()
-        const margin ={top: 10, right: 20, bottom: 10, left: 20},
-            height = this.svgHeight,
+        d3.select(this.$refs.root).selectAll('svg *').remove()
+        // const margin ={top: 70, right: 100, bottom: 50, left: 70} //d3
+        const margin ={top: 50, right: 30, bottom: 50, left: 30} //vue
+        const height = this.svgHeight,
             width = this.svgWidth
         const x = d3
             .scaleLinear()
@@ -35,7 +37,7 @@ export default {
             .range([height - margin.bottom, margin.top])
         this.yScale = y
         var compute = d3.interpolate(3, 8) // vue:3-8, d3:3-4
-        var linear = d3.scaleLinear().domain([1, this.maxLen]).range([0, 1])
+        var linear = d3.scaleLinear().domain([Math.sqrt(this.minLen), Math.sqrt(this.maxLen)]).range([0, 1])
         var circle = this.svg
             .append('g')
             .selectAll('.marker')
@@ -43,11 +45,12 @@ export default {
             .enter()
             .append('circle')
             .attr('class', 'marker')
-            .attr('r', d => compute(linear(d.len)))
+            .attr('r', d => compute(linear(Math.sqrt(d.len))))
             .attr('cx', d => x(parseFloat(d.x)))
             .attr('cy', d => y(parseFloat(d.y)))
             .attr('fill', d => this.colorMap[d.type])
             .on('click', d => {
+                console.log(d)
                 circle.attr('opacity', 0.3)
                 circle.filter(dot => dot.id === d.id).attr('opacity', 1)
                 this.$bus.$emit('path-selected', d.id)
@@ -68,6 +71,7 @@ export default {
         this.$axios.get('files/getCoordinates', {
         }).then(({ data }) => {
             this.maxLen = d3.max(data.map(d => d.len))
+            this.minLen = d3.min(data.map(d => d.len))
             this.draw(data)
         })
     }
