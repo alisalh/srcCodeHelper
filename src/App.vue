@@ -6,7 +6,7 @@
           <div class='text-div'>Depth</div>
           <div class='slider-div'>
             <el-slider v-model="curDepth" :step="1" 
-              show-stops :min="1" :max="3" size="mini">
+              show-stops :min="1" :max="6" size="mini">
             </el-slider>
             <el-input v-model="curDepth" size="mini"></el-input>
           </div>
@@ -28,13 +28,13 @@
           </div>
         </div>
       </div>
-      <dep-hell-wrapper :root="treeRoot" :filesInfo="filesInfo" :maxDepth="maxDepth" :colorMap="colorMap">
+      <dep-hell-wrapper :root="treeRoot" :filesInfo="filesInfo" :maxDepth="maxDepth" :colorMap="colorMap" :libName='libName'>
       </dep-hell-wrapper>
-      <scatter-plot :coordinates="coordinates" :colorMap="colorMap"></scatter-plot>
+      <scatter-plot :coordinates="coordinates" :colorMap="colorMap" :libName='libName'></scatter-plot>
     </div>
     <div class="center-panel">
       <div class="first-row bl-card-shadow">
-        <dep-path :graphData="graphData" :filesDist="filesDist" :root="treeRoot" :filesList="filesList" :maxDepth="maxDepth" :colorMap='colorMap'></dep-path>
+        <dep-path :graphData="graphData" :filesDist="filesDist" :root="treeRoot" :filesList="filesList" :maxDepth="maxDepth" :colorMap='colorMap' :libName='libName'></dep-path>
       </div>
       <div class="second-row bl-card-shadow">
         <parallel-coordinate :filesInfo="filesInfo" class='parallel-coordinate'></parallel-coordinate>
@@ -77,7 +77,8 @@ export default {
       selectedFileName: 'None',
       treeRoot: null,
       maxDepth: 0,
-      curDepth: 3, //vue: 1~6, d3: 1~3
+      curDepth: 6, //vue: 1~6, d3: 1~3
+      libName: 'vue',
       similarNum: 10,
       isSelected: '1',
       filesInfo: null,
@@ -87,7 +88,7 @@ export default {
       coordinates: null,
       dependedData: null,
       dependingData: null,
-      colorMap: { long: '#377eb8', indirect: '#66c2a5', direct: '#d53e4f' },
+      colorMap: { long: '#377eb8', indirect: '#66c2a5', direct: '#bf812d' }
     }
   },
   updated() {

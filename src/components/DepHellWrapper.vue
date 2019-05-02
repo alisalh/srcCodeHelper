@@ -24,39 +24,56 @@ export default {
       fileDepInfo: null, // store dep info for each file
       centerSvg: null,
       node: null,
-      colorData:['#662506', '#993404','#cc4c02','#ec7014','#fe9929','#fec44f','#fee391','#fff7bc']
+      colorData:['#b90207','#cb181d','#fb6a4a','#fcbba1']
     }
   },
-  props: ['root', 'filesInfo', 'maxDepth', 'colorMap'],
+  props: ['root', 'filesInfo', 'maxDepth', 'colorMap', 'libName'],
   updated() {
     console.log("dephellwrapper updated")
     console.log('root in dephell updated')
   },
   computed: {
-    // vue-130, d3-120
     dendrogramR() { return Math.min(this.svgWidth, this.svgHeight) / 2 - 130 }
   },
   methods: {
     drawColorBar(data){
+      let linearGradient = this.svg.append('defs')
+        .append('linearGradient')
+        .attr('class', 'bar-linear')
+        .attr('id', 'bar-linear-gradient')
+        .attr('gradientUnits','userSpaceOnUse')
+        .attr('x1', 0)
+        .attr('y1', 0)
+        .attr('x2', 200)
+        .attr('y2', 18)
+      linearGradient.append('stop')
+        .attr('offset', '0%')
+        .attr('stop-color', data[0])
+      linearGradient.append('stop')
+        .attr('offset', '33%')
+        .attr('stop-color', data[1])
+      linearGradient.append('stop')
+        .attr('offset', '66%')
+        .attr('stop-color', data[2])
+      linearGradient.append('stop')
+        .attr('offset', '100%')
+        .attr('stop-color', data[3])
       var colorBarG = this.svg.append('g')
         .attr('class', 'bar')
-        .attr('transform', 'translate(265, 22)')
+        .attr('transform', 'translate(225, 22)')
       colorBarG.append('text')
         .text('More')
         .attr('font-size', 14)
         .attr('dy', '1em')
         .attr('dx', '-2.5em')
-      data.forEach((d,i) =>{
-        colorBarG.append('rect')
-          .attr('width', 20)
-          .attr('height', 18)
-          .attr('x', i*20)
-          .attr('fill', d)
-      })
+      colorBarG.append('rect')
+        .attr('width', 200)
+        .attr('height', 18)
+        .style('fill', 'url(#bar-linear-gradient)')
       colorBarG.append('text')
         .text('Less')
         .attr('font-size', 14)
-        .attr('x', data.length*20)
+        .attr('x', 200)
         .attr('dy', '1em')
         .attr('dx', '0.3em')
     },
@@ -117,8 +134,13 @@ export default {
       var formatNumber = d3.format(",d");
       var x = d3.scaleLinear()
         .range([0, 2 * Math.PI]);
-      var y = d3.scaleLinear()
-        .range([this.dendrogramR + this.stackHeight, this.dendrogramR + this.stackHeight + this.hierarchyHiehgt]).domain([1, 0]);
+      var y
+      if(this.libName === 'd3')
+        y = d3.scaleLinear()
+          .range([this.dendrogramR + this.stackHeight + 20, this.dendrogramR + this.stackHeight + this.hierarchyHiehgt]).domain([1, 0]); // d3
+      if(this.libName === 'vue')
+        y = d3.scaleLinear()
+          .range([this.dendrogramR + this.stackHeight, this.dendrogramR + this.stackHeight + this.hierarchyHiehgt]).domain([1, 0]); //vue
       var partition = d3.partition();
       var arc = d3.arc()
         .startAngle(function(d) { return Math.max(0, Math.min(2 * Math.PI, x(d.x0))); })
@@ -130,7 +152,7 @@ export default {
         .attr('transform', 'translate(' + this.svgWidth / 2 + ',' + (this.svgHeight / 2 + 30) + ')')
 
       // 颜色色卡
-      var a = d3.rgb(254,227,145), b = d3.rgb(102,37,6)
+      var a = d3.rgb(252,187,161), b = d3.rgb(185,2,7)
       var compute = d3.interpolate(a, b)
       var linear = d3.scaleLinear().domain([1, this.maxDepended]).range([0, 1])
       
@@ -143,7 +165,6 @@ export default {
         .style("stroke", d => {
           return 'white'
         })
-        .attr('stroke-opacity', 0.3)
         .style("fill", function(d) {
           if (d.data.type === "dir")
             return "#fed9a6"
@@ -151,11 +172,11 @@ export default {
             let temp = vm.dependedData.find(item => item.fileid === d.data.id)
             if(temp.depended > 0)
               return compute(linear(temp.depended))
-            else
-              return '#fff7bc'
+            // else
+            //   return '#fff7bc'
           }
           // return '#e5d8bd' 
-          return '#ece4d5'
+          return '#eeebe6'
         })
         .each((d, i) => {
           if(d.data.type === 'dir'){
@@ -184,7 +205,11 @@ export default {
       
       // 重新定义arc用于绘制连线
       let newX = d3.scaleLinear().range([0, 2 * Math.PI]);
-      let newY = d3.scaleLinear().range([this.dendrogramR, this.dendrogramR+20]).domain([1, 0]);
+      let newY 
+      if(this.libName === 'd3')
+        newY = d3.scaleLinear().range([this.dendrogramR+20, this.dendrogramR+40]).domain([1, 0]);
+      if(this.libName === 'vue')
+        newY = d3.scaleLinear().range([this.dendrogramR, this.dendrogramR+20]).domain([1, 0]);
       let newArc = d3.arc()
         .startAngle(function(d) { return Math.max(0, Math.min(2 * Math.PI, newX(d.x0))); })
         .endAngle(function(d) { return Math.max(0, Math.min(2 * Math.PI, newX(d.x1))); })
@@ -197,7 +222,6 @@ export default {
       this.node.on('click', (d,i) => {
         this.node.select('.hierarchy-node')
           .style('stroke','white')
-          .attr('stroke-opacity', 0.3)
         if(d.depth === this.maxDepth){
           this.$bus.$emit('file-selected', d.data.name)
           if(this.dependType === '1')
@@ -206,17 +230,15 @@ export default {
             drawTargetLinks(d)
           this.node.select('#hierarchy-node-'+i)
             .style('stroke','red')
-            .attr('stroke-opacity', 1)
         }
         d3.event.stopPropagation()
       })
       this.svg.on('click', d=>{
         this.$bus.$emit('fileid-restored', null)
         this.svg.selectAll('.linkG path').remove()
-        this.svg.selectAll('defs').remove()
+        this.svg.selectAll('.link-linear').remove()
         this.node.select('.hierarchy-node')
           .style('stroke','white')
-          .attr('stroke-opacity', 0.3)
       })
 
     // 添加文字
@@ -226,11 +248,7 @@ export default {
       .style('font-size', 12+'px')
       .attr('id', (d, i) => 'text'+i)
       .attr('dy', function(d, i) { 
-        // vue
         return (arc.centroid(d)[1] > 0 ? -4 : 11) 
-
-        // // d3
-        // return (arc.centroid(d)[1] > 0 ? -5 : 14) 
       })
       .append('textPath')
       .attr('startOffset','50%')
@@ -255,7 +273,7 @@ export default {
       function drawSourceLinks(d){
         // 添加引用和被引用连线
         vm.svg.selectAll('.linkG path').remove()
-        vm.svg.selectAll('defs').remove()
+        vm.svg.selectAll('.link-linear').remove()
         let selectedFile = vm.filesInfo.filter(file => file.id === d.data.id)
         let source = selectedFile[0].fileInfo.depended
         vm.$bus.$emit('fileid-selected', {fileid: d.data.id, nodes: source})
@@ -264,6 +282,7 @@ export default {
           let start = newArc.centroid(temp), end = newArc.centroid(d)
           let linearGradient = vm.svg.append('defs')
             .append('linearGradient')
+            .attr('class', 'link-linear')
             .attr('id', s+'linear-gradient')
             .attr('gradientUnits','userSpaceOnUse')
             .attr('x1', start[0])
@@ -292,7 +311,7 @@ export default {
       function drawTargetLinks(d){
         // 添加引用和被引用连线
         vm.svg.selectAll('.linkG path').remove()
-        vm.svg.selectAll('defs').remove()
+        vm.svg.selectAll('.link-linear').remove()
         let selectedFile = vm.filesInfo.filter(file => file.id === d.data.id)
         let source = selectedFile[0].fileInfo.depending
         vm.$bus.$emit('fileid-selected', {fileid: d.data.id, nodes: source})
@@ -301,6 +320,7 @@ export default {
           let start = newArc.centroid(temp), end = newArc.centroid(d)
           let linearGradient = vm.svg.append('defs')
             .append('linearGradient')
+            .attr('class', 'link-linear')
             .attr('id', s+'linear-gradient')
             .attr('gradientUnits','userSpaceOnUse')
             .attr('x1', start[0])
@@ -340,8 +360,13 @@ export default {
       let series = stack(this.fileDepInfo)
       //draw stack chart
       let maxVal = d3.max(series[series.length - 1], d => d[1])
-      var y = d3.scaleLinear()
-        .range([this.dendrogramR + 5, this.dendrogramR + this.stackHeight]).domain([maxVal, 0]);
+      var y 
+      if(this.libName === 'd3')
+        y = d3.scaleLinear()
+          .range([this.dendrogramR + 20 + 5, this.dendrogramR + this.stackHeight + 20]).domain([maxVal, 0]);
+      if(this.libName === 'vue')
+        y= d3.scaleLinear()
+          .range([this.dendrogramR + 5, this.dendrogramR + this.stackHeight]).domain([maxVal, 0]);
       // 角度平分
       let offset = 2 * Math.PI / this.root.leaves().length
       var arc = d3.arc()
@@ -366,12 +391,11 @@ export default {
   watch: {
     dependType(val){
       this.svg.selectAll('.linkG path').remove()
-      this.svg.selectAll('defs').remove()
+      this.svg.selectAll('.link-linear').remove()
        this.node.select('.hierarchy-node')
           .style('stroke','white')
-          .attr('stroke-opacity', 0.3)
       if(val === '1'){
-        var a = d3.rgb(254,227,145), b = d3.rgb(102,37,6)
+        var a = d3.rgb(252,187,161), b = d3.rgb(185,2,7)
         var compute = d3.interpolate(a, b)
         var linear = d3.scaleLinear().domain([1, this.maxDepended]).range([0, 1])
         this.node.select('.hierarchy-node').style('fill', () => '#fff7bc')
@@ -382,14 +406,14 @@ export default {
             let temp = this.dependedData.find(item => item.fileid === d.data.id)
             if(temp.depended > 0)
               return compute(linear(temp.depended))
-            else
-              return '#fff7bc'
+            // else
+            //   return '#fff7bc'
           }
-          return '#ece4d5'
+          return '#eeebe6'
         })
       }
       if(val === '2'){
-        var a = d3.rgb(254,227,145), b = d3.rgb(102,37,6)
+        var a = d3.rgb(252,187,161), b = d3.rgb(185,2,7)
         var compute = d3.interpolate(a, b)
         var linear = d3.scaleLinear().domain([1, this.maxDepending]).range([0, 1])
         this.node.select('.hierarchy-node').style('fill', () => '#fff7bc')
@@ -400,10 +424,10 @@ export default {
             let temp = this.dependingData.find(item => item.fileid === d.data.id)
             if(temp.depending > 0)
               return compute(linear(temp.depending))
-            else
-              return '#fff7bc'
+            // else
+            //   return '#fff7bc'
           }
-          return '#ece4d5'
+          return '#eeebe6'
         })
       }
     }

@@ -54,7 +54,7 @@ export default {
       selectId: null
     }
   },
-  props:['graphData', 'filesDist', 'root', 'filesList', 'maxDepth', 'colorMap'],
+  props:['graphData', 'filesDist', 'root', 'filesList', 'maxDepth', 'colorMap', 'libName'],
   methods: {
     updateGraph(depth){
       let newGraphData = {nodes:[], links:[]}
@@ -74,6 +74,8 @@ export default {
       let dirNodes = children.filter(node => node.depth === depth && node.data.type ==='dir')
       let dirSize = {}
       dirNodes.forEach(node => {
+        if(node.data.name === 'E:\\Workspace\\Visualization\\srcCodeHelperServer\\data\\vue\\src\\server\\webpack-plugin')
+          return
         let fileids = []
         // 查找当前文件夹下的文件
         let files = this.filesList.filter(file => file.indexOf(node.data.name+'\\') > -1)
@@ -129,19 +131,18 @@ export default {
       d3.select('.main-div').selectAll('svg *').remove()
       let vm = this
       var simulation
-      // 小于200表示vue
-      if(data.nodes.length < 200){
+      if(this.libName === 'vue'){
         simulation = d3.forceSimulation()
           .force("link", d3.forceLink().id(function(d) { return d.fileid; }))
           .force("charge", d3.forceManyBody().strength(-200).distanceMin(30).distanceMax(100))
           .force("center", d3.forceCenter(this.svgHeight  / 2, this.svgWidth/ 2))
           .force('collision', d3.forceCollide().radius(function(d) { return 10 }))
       }
-      else{
+     if(this.libName === 'd3'){
         simulation = d3.forceSimulation()
           .force("link", d3.forceLink().id(function(d) { return d.fileid }))
           .force("charge", d3.forceManyBody().strength(-90).distanceMin(20).distanceMax(80))
-          .force("center", d3.forceCenter(this.svgHeight / 2, this.svgWidth / 2 - 20))
+          .force("center", d3.forceCenter(this.svgHeight / 2 -25, this.svgWidth / 2 - 20))
           .force('collision', d3.forceCollide().radius(function(d) { return 10 }))
       }
 
@@ -258,8 +259,12 @@ export default {
               }
             })
             this.type = 'file'
-            this.path = this.filesList[d.fileid]
-              .replace(/E:\\Workspace\\Visualization\\srcCodeHelperServer\\data\\vue\\src\\/g, '')
+            if(this.libName === 'vue')
+              this.path = this.filesList[d.fileid]
+                .replace(/E:\\Workspace\\Visualization\\srcCodeHelperServer\\data\\vue\\src\\/g, '')
+            if(this.libName === 'd3')
+              this.path = this.filesList[d.fileid]
+                .replace(/E:\\Workspace\\Visualization\\srcCodeHelperServer\\data\\d3\\src\\/g, '')
           } 
         })
         // .call(d3.drag()
@@ -462,6 +467,8 @@ export default {
     this.subSvgWidth = Math.floor(this.$refs.root2.clientWidth)
     this.subSvgHeight = Math.floor(this.$refs.root2.clientHeight)
     this.$bus.$on('path-selected', d=> {
+      if(this.depth != this.maxDepth)
+        return
       let pathid = parseInt(d)
       this.$axios.get('files/getPathInfoById', {
         id: pathid
@@ -485,9 +492,13 @@ export default {
       })
     })
     this.$bus.$on('path-restored', () =>{
+      if(this.depth != this.maxDepth)
+        return
       this.resetState()
     })
     this.$bus.$on('fileid-restored', () => {
+      if(this.depth != this.maxDepth)
+        return
       this.resetState()
     })
     this.$bus.$on('depth-selected', d =>{
@@ -495,6 +506,8 @@ export default {
       this.updateGraph(this.depth)
     })
     this.$bus.$on('fileid-selected', d =>{
+      if(this.depth != this.maxDepth)
+        return 
       this.nodes.attr('opacity', 0.2).attr('r', this.defaultR)
       this.links.attr('opacity', 0.2).attr('stroke-width', 0.3)
       this.nodes.filter(node => d.nodes.indexOf(node.fileid) != -1 || node.fileid === d.fileid)

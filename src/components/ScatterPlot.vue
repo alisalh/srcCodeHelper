@@ -16,12 +16,15 @@ export default {
         minLen: 0
     }
   },
-  props:['filteredCoordinates', 'colorMap'],
+  props:['filteredCoordinates', 'colorMap', 'libName'],
   methods: {
       draw(data){
         d3.select(this.$refs.root).selectAll('svg *').remove()
-        // const margin ={top: 70, right: 100, bottom: 50, left: 70} //d3
-        const margin ={top: 30, right: 30, bottom: 30, left: 30} //vue
+        var margin
+        if(this.libName === 'vue')
+            margin ={top: 30, right: 30, bottom: 30, left: 30} 
+        if(this.libName === 'd3')
+            margin ={top: 70, right: 100, bottom: 50, left: 70} 
         const height = this.svgHeight,
             width = this.svgWidth
         const x = d3
@@ -36,7 +39,7 @@ export default {
             .nice()
             .range([height - margin.bottom, margin.top])
         this.yScale = y
-        var compute = d3.interpolate(3, 8) // vue:3-8, d3:3-4
+        var compute = d3.interpolate(4, 9) 
         var linear = d3.scaleLinear().domain([Math.sqrt(this.minLen), Math.sqrt(this.maxLen)]).range([0, 1])
         var circle = this.svg
             .append('g')
@@ -52,7 +55,7 @@ export default {
             .on('click', d => {
                 circle.attr('opacity', 0.3)
                 circle.filter(dot => dot.id === d.id).attr('opacity', 1)
-                    .attr('stroke', '#4393c3').attr('stroke-width', 2)
+                    .attr('stroke', '#4393c3').attr('stroke-width', 2.5)
                 this.$bus.$emit('path-selected', d.id)
                 d3.event.stopPropagation()
             })
