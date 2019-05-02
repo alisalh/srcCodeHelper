@@ -146,7 +146,9 @@ export default {
         .startAngle(function(d) { return Math.max(0, Math.min(2 * Math.PI, x(d.x0))); })
         .endAngle(function(d) { return Math.max(0, Math.min(2 * Math.PI, x(d.x1))); })
         .innerRadius(function(d) { return Math.max(0, y(d.y0)); })
-        .outerRadius(function(d) { return Math.max(0, y(d.y1)); });
+        .outerRadius(function(d) { return Math.max(0, y(d.y1)); })
+      if(this.libName === 'vue')
+        arc.padAngle(0.003)
 
       var hierarchyG = this.svg.append('g')
         .attr('transform', 'translate(' + this.svgWidth / 2 + ',' + (this.svgHeight / 2 + 30) + ')')
@@ -224,12 +226,13 @@ export default {
           .style('stroke','white')
         if(d.depth === this.maxDepth){
           this.$bus.$emit('file-selected', d.data.name)
+          this.$bus.$emit('fileid-selected', {fileid: d.data.id})
           if(this.dependType === '1')
             drawSourceLinks(d)
           if(this.dependType === '2')
             drawTargetLinks(d)
           this.node.select('#hierarchy-node-'+i)
-            .style('stroke','red')
+            .style('stroke','#081d58')
         }
         d3.event.stopPropagation()
       })
@@ -276,7 +279,7 @@ export default {
         vm.svg.selectAll('.link-linear').remove()
         let selectedFile = vm.filesInfo.filter(file => file.id === d.data.id)
         let source = selectedFile[0].fileInfo.depended
-        vm.$bus.$emit('fileid-selected', {fileid: d.data.id, nodes: source})
+        // vm.$bus.$emit('fileid-selected', {fileid: d.data.id, nodes: source})
         source.forEach(s => {
           let temp = vm.root.leaves().find(node => node.data.id === s)
           let start = newArc.centroid(temp), end = newArc.centroid(d)
@@ -314,7 +317,7 @@ export default {
         vm.svg.selectAll('.link-linear').remove()
         let selectedFile = vm.filesInfo.filter(file => file.id === d.data.id)
         let source = selectedFile[0].fileInfo.depending
-        vm.$bus.$emit('fileid-selected', {fileid: d.data.id, nodes: source})
+        // vm.$bus.$emit('fileid-selected', {fileid: d.data.id, nodes: source})
         source.forEach(s => {
           let temp = vm.root.leaves().find(node => node.data.id === s)
           let start = newArc.centroid(temp), end = newArc.centroid(d)
@@ -468,6 +471,12 @@ export default {
         .attr('opacity', 0.1)
       this.node.filter(node => node.depth === this.maxDepth && d.indexOf(node.data.id) != -1)
         .attr('opacity', 1)
+    })
+    this.$bus.$on('link-clear', () =>{
+      this.svg.selectAll('.linkG path').remove()
+      this.svg.selectAll('.link-linear').remove()
+      this.node.select('.hierarchy-node')
+        .style('stroke','white')
     })
   }
 }

@@ -274,8 +274,10 @@ export default {
       this.svg.on('click', ()=>{
         this.path = null
         this.type = null
-        if(this.depth === this.maxDepth)
+        if(this.depth === this.maxDepth){
           this.resetState()
+          this.$bus.$emit('link-clear', null)
+        }
       })
       this.nodes.append("title")
         .text((d) => {
@@ -508,15 +510,46 @@ export default {
     this.$bus.$on('fileid-selected', d =>{
       if(this.depth != this.maxDepth)
         return 
-      this.nodes.attr('opacity', 0.2).attr('r', this.defaultR)
-      this.links.attr('opacity', 0.2).attr('stroke-width', 0.3)
-      this.nodes.filter(node => d.nodes.indexOf(node.fileid) != -1 || node.fileid === d.fileid)
-        .attr('r', 4)
-        .attr('opacity', 1)
-      this.links.filter(link => (link.target.fileid === d.fileid && d.nodes.indexOf(link.source.fileid) != -1)
-                              || (link.source.fileid === d.fileid && d.nodes.indexOf(link.target.fileid) != -1))
-        .attr('opacity', 1)
-        .attr('stroke-width', 1)
+      this.resetState()
+      this.isSelected = true
+      // 颜色色卡
+      var a = d3.rgb(165,0,38), b = d3.rgb(253,174,97)
+      var compute = d3.interpolate(a, b)
+      function up(x, y) {return x.val -y.val}
+      // 显示相似节点
+      let dist = this.filesDist.filter(dist => parseInt(dist.id) === d.fileid)[0],
+        fileid = [], val = []
+      this.obj = []
+      for(var key in dist)
+        this.obj.push({key: key, val: dist[key]})
+      this.obj.sort(up)
+      for(let i=0; i<this.num+1; i++){
+        fileid.push(parseInt(this.obj[i].key))
+        val.push(parseFloat(this.obj[i].val))
+      }
+      var linear = d3.scaleLinear().domain([Math.min(...val), Math.max(...val)]).range([0, 1])
+      fileid.forEach((id, i) =>{
+        this.nodes.filter(node => node.fileid === id)
+          .attr('fill', compute(linear(val[i])))
+          .attr('r', 4)
+      })
+      // 当前点击节点的半径最大
+      this.selectId = d.fileid
+      this.nodes.filter(node => node.fileid === d.fileid).attr('r', 6)
+      // 绘制子图
+      this.$axios.get('files/getSubGraphData', {
+        fileid: d.fileid
+      }).then(({ data }) => {
+        var subGraphData = data.subGraph
+        this.drawSubGraph('selected', d.fileid, subGraphData)
+      })
+      this.type = 'file'
+      if(this.libName === 'vue')
+        this.path = this.filesList[d.fileid]
+          .replace(/E:\\Workspace\\Visualization\\srcCodeHelperServer\\data\\vue\\src\\/g, '')
+      if(this.libName === 'd3')
+        this.path = this.filesList[d.fileid]
+          .replace(/E:\\Workspace\\Visualization\\srcCodeHelperServer\\data\\d3\\src\\/g, '')
     })
     this.$bus.$on('similar-number-selected', d => {
       this.num = d

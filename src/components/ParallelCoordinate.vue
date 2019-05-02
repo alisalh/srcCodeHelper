@@ -180,7 +180,7 @@ export default {
   .foreground path {
     fill: none;
     stroke: steelblue;
-    stroke-opacity: .7;
+    stroke-opacity: .5;
   }
 }
 
