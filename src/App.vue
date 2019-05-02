@@ -6,7 +6,7 @@
           <div class='text-div'>Depth</div>
           <div class='slider-div'>
             <el-slider v-model="curDepth" :step="1" 
-              show-stops :min="1" :max="6" size="mini">
+              show-stops :min="1" :max="3" size="mini">
             </el-slider>
             <el-input v-model="curDepth" size="mini"></el-input>
           </div>
@@ -77,7 +77,7 @@ export default {
       selectedFileName: 'None',
       treeRoot: null,
       maxDepth: 0,
-      curDepth: 6, //vue: 1~6, d3: 2~4
+      curDepth: 3, //vue: 1~6, d3: 1~3
       similarNum: 10,
       isSelected: '1',
       filesInfo: null,

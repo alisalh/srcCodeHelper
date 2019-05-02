@@ -76,7 +76,7 @@ export default {
       dirNodes.forEach(node => {
         let fileids = []
         // 查找当前文件夹下的文件
-        let files = this.filesList.filter(file => file.indexOf(node.data.name) > -1)
+        let files = this.filesList.filter(file => file.indexOf(node.data.name+'\\') > -1)
         files.forEach(file =>{
           let index = this.filesList.indexOf(file)
           fileids.push(index)
@@ -121,14 +121,12 @@ export default {
           return { source: parts[0], target: parts[1] }
         })
       })
-      console.log(newGraphData)
       this.numNodes = newGraphData.nodes.length
       this.numLinks = newGraphData.links.length
       this.draw(newGraphData)
     },
     draw(data) {
       d3.select('.main-div').selectAll('svg *').remove()
-      // console.log(d3.select(this.$refs.root).selectAll('svg *'))
       let vm = this
       var simulation
       // 小于200表示vue
@@ -276,9 +274,14 @@ export default {
       })
       this.nodes.append("title")
         .text((d) => {
-          let name = this.filesList[d.fileid]
-              .replace(/E:\\Workspace\\Visualization\\srcCodeHelperServer\\data\\vue\\src\\/g, '')
-          return name.substr(name.lastIndexOf('\\')+1)
+          if(this.filesList[d.fileid]){
+            let name = this.filesList[d.fileid]
+            return name.substr(name.lastIndexOf('\\')+1)
+          }
+          else{
+            let name = d.fileid
+            return name.substr(name.lastIndexOf('\\')+1)
+          }
         })
 
       function boundX(d){

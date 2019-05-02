@@ -181,7 +181,6 @@ export default {
         })
         .append("title")
         .text((d) => d.data.name.substr(d.data.name.lastIndexOf('\\')+1))
-        // .text((d) => d.data.name.replace(/E:\\Workspace\\Visualization\\srcCodeHelperServer\\data\\d3\\src\\/g,''))
       
       // 重新定义arc用于绘制连线
       let newX = d3.scaleLinear().range([0, 2 * Math.PI]);
@@ -368,6 +367,9 @@ export default {
     dependType(val){
       this.svg.selectAll('.linkG path').remove()
       this.svg.selectAll('defs').remove()
+       this.node.select('.hierarchy-node')
+          .style('stroke','white')
+          .attr('stroke-opacity', 0.3)
       if(val === '1'){
         var a = d3.rgb(254,227,145), b = d3.rgb(102,37,6)
         var compute = d3.interpolate(a, b)
