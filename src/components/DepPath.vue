@@ -58,16 +58,23 @@ export default {
   methods: {
     updateGraph(depth){
       let newGraphData = {nodes:[], links:[]}
+      // 复制node
+      this.graphData.nodes.forEach(node => {
+        newGraphData.nodes.push({fileid: node.fileid, x: node.x, y: node.y})
+      })
       // 复制link
       this.graphData.links.forEach(link =>{
-        newGraphData.links.push({source: link.source.fileid, target: link.target.fileid})
+        newGraphData.links.push({
+          source: link.source.fileid,
+          target: link.target.fileid
+        })
       })
       // 查找当前depth的文件夹节点
-      let nodes = d3.partition()(this.root).descendants().slice(1)
-      let dirNodes = nodes.filter(node => node.depth === depth && node.data.type ==='dir')
+      let children= d3.partition()(this.root).descendants().slice(1)
+      let dirNodes = children.filter(node => node.depth === depth && node.data.type ==='dir')
       let dirSize = {}
       dirNodes.forEach(node => {
-        let  fileids = []
+        let fileids = []
         // 查找当前文件夹下的文件
         let files = this.filesList.filter(file => file.indexOf(node.data.name) > -1)
         files.forEach(file =>{
@@ -75,39 +82,46 @@ export default {
           fileids.push(index)
         })
         dirSize[node.data.name] = files.length
-        let links = []
-        // 替换link
-        newGraphData.links.forEach(link =>{
-          if(fileids.indexOf(link.source) === -1){
-            if(fileids.indexOf(link.target) === -1)
-              links.push({source: link.source, target: link.target})
-            else
-              links.push({source: link.source, target: node.data.name})
+        // 计算文件夹节点的平均位置
+        let x = 0, y = 0, nodes = []
+        newGraphData.nodes.forEach(d => {
+          if(fileids.indexOf(d.fileid) != -1){
+            x = x+d.x
+            y = y+d.y
           }
           else{
-            if(fileids.indexOf(link.target) === -1)
-                links.push({source: node.data.name, target: link.target})
+            nodes.push(d)
+          } 
+        })
+        x = x/fileids.length
+        y = y/fileids.length
+        nodes.push({fileid: node.data.name, size: fileids.length, x: x, y: y})
+        newGraphData.nodes = nodes
+        // 更新link
+        let links = new Set()
+        newGraphData.links.forEach(link =>{
+          if(fileids.indexOf(parseInt(link.source)) === -1){
+            if(fileids.indexOf(parseInt(link.target)) === -1){
+              links.add(link.source + '|' + link.target)
+            }
+            else{
+              link.target = node.data.name
+              links.add(link.source + '|' + link.target)
+            }  
+          }
+          else{
+            if(fileids.indexOf(parseInt(link.target)) === -1){
+              link.source = node.data.name
+              links.add(link.source + '|' + link.target)
+            }
           }
         })
-        newGraphData.links = links
-      })
-      // 更新nodes和links
-      let nodesSet = new Set(), linksSet = new Set()
-      newGraphData.links.forEach(link =>{
-        nodesSet.add(link.source)
-        nodesSet.add(link.target)
-        linksSet.add(link.source + '|' + link.target)
-      })
-      newGraphData.nodes = [...nodesSet].map(d => {
-        if(dirSize[d])
-          return { fileid: d, size: dirSize[d]}
-        else
-          return {fileid: d}
-      })
-      newGraphData.links = [...linksSet].map(d => {
-        let parts = d.split('|')
+        newGraphData.links = [...links].map(d => {
+          let parts = d.split('|')
           return { source: parts[0], target: parts[1] }
+        })
       })
+      console.log(newGraphData)
       this.numNodes = newGraphData.nodes.length
       this.numLinks = newGraphData.links.length
       this.draw(newGraphData)
