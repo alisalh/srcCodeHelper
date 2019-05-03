@@ -18,13 +18,32 @@ export default {
   },
   props:['filteredCoordinates', 'colorMap', 'libName'],
   methods: {
+      drawLegend(data){
+        var keys = Object.keys(data), val = Object.values(data)
+        let legendG = this.svg.append('g')
+            .attr('transform','translate(30,25)')
+        // circle
+        legendG.append('circle').attr('r',keys[0]).attr('fill', '#bdbdbd')
+        legendG.append('circle').attr('r',keys[1]).attr('cx', 30).attr('fill', '#bdbdbd')
+        legendG.append('circle').attr('r',keys[2]).attr('cx', 63).attr('fill', '#bdbdbd')
+        legendG.append('circle').attr('r',keys[3]).attr('cx', 98).attr('fill', '#bdbdbd')
+        legendG.append('circle').attr('r',keys[4]).attr('cx', 135).attr('fill', '#bdbdbd')
+        legendG.append('circle').attr('r',keys[5]).attr('cx', 175).attr('fill', '#bdbdbd')
+        // line
+        legendG.append('text').text(val[0]).attr('font-size','12px').attr('dy', '0.4em').attr('dx', '0.6em')
+        legendG.append('text').text(val[1]).attr('font-size','12px').attr('dy', '0.4em').attr('dx', '3.2em')
+        legendG.append('text').text(val[2]).attr('font-size','12px').attr('dy', '0.4em').attr('dx', '6.1em')
+        legendG.append('text').text(val[3]).attr('font-size','12px').attr('dy', '0.4em').attr('dx', '9.1em')
+        legendG.append('text').text(val[4]).attr('font-size','12px').attr('dy', '0.4em').attr('dx', '12.4em')
+        legendG.append('text').text(val[5]).attr('font-size','12px').attr('dy', '0.4em').attr('dx', '16em')
+      },
       draw(data){
         d3.select(this.$refs.root).selectAll('svg *').remove()
         var margin
         if(this.libName === 'vue')
-            margin ={top: 30, right: 30, bottom: 30, left: 30} 
+            margin ={top: 60, right: 30, bottom: 15, left: 20} 
         if(this.libName === 'd3')
-            margin ={top: 70, right: 100, bottom: 50, left: 70} 
+            margin ={top: 80, right: 100, bottom: 30, left: 70} 
         const height = this.svgHeight,
             width = this.svgWidth
         const x = d3
@@ -41,6 +60,7 @@ export default {
         this.yScale = y
         var compute = d3.interpolate(4, 9) 
         var linear = d3.scaleLinear().domain([Math.sqrt(this.minLen), Math.sqrt(this.maxLen)]).range([0, 1])
+        let legendData = {}
         var circle = this.svg
             .append('g')
             .selectAll('.marker')
@@ -48,7 +68,11 @@ export default {
             .enter()
             .append('circle')
             .attr('class', 'marker')
-            .attr('r', d => compute(linear(Math.sqrt(d.len))))
+            .attr('r', d => {
+                let r = compute(linear(Math.sqrt(d.len)))
+                legendData[Math.round(r)] = d.len
+                return r
+            })
             .attr('cx', d => x(parseFloat(d.x)))
             .attr('cy', d => y(parseFloat(d.y)))
             .attr('fill', d => this.colorMap[d.type])
@@ -59,6 +83,7 @@ export default {
                 this.$bus.$emit('path-selected', d.id)
                 d3.event.stopPropagation()
             })
+        this.drawLegend(legendData)
         this.svg.on('click', d=>{
             circle.attr('opacity', 1)
             this.$bus.$emit('path-restored', null)
@@ -76,6 +101,9 @@ export default {
             this.maxLen = d3.max(data.map(d => d.len))
             this.minLen = d3.min(data.map(d => d.len))
             this.draw(data)
+        })
+        this.$bus.$on('link-clear', ()=>{
+            this.svg.selectAll('circle').attr('opacity', 1)
         })
     }
 }
