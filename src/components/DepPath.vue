@@ -215,6 +215,22 @@ export default {
           return { source: parts[0], target: parts[1] }
         })
       })
+      // 添加文件夹的直接连接
+      for(let i=0; i<newGraphData.links.length; i++){
+        for(let j=0; j<newGraphData.links.length; j++){
+          if(i === j) continue
+          if((newGraphData.links[i].source===newGraphData.links[j].target) &&
+            (newGraphData.links[i].target===newGraphData.links[j].source)){
+              let s1 = newGraphData.links[i].source+'|'+newGraphData.links[i].target,
+                s2 = newGraphData.links[j].source+'|'+newGraphData.links[j].target
+              if(this.directData.indexOf(s1) === -1)
+                this.directData.push(s1)
+              if(this.directData.indexOf(s2) === -1)
+                this.directData.push(s2)
+              break
+            }
+        }
+      }
       this.numNodes = newGraphData.nodes.length
       this.numLinks = newGraphData.links.length
       this.draw(newGraphData)
@@ -293,6 +309,7 @@ export default {
         .selectAll("circle")
         .data(data.nodes)
         .enter().append("circle")
+        .attr('id', d => 'circle'+d.index)
         .attr("r", d => {
           if(this.depth === this.maxDepth)
             return this.defaultR
@@ -334,8 +351,6 @@ export default {
               // 比较节点的stroke上色
               this.nodes.filter(node => node.fileid === d.fileid).attr('stroke', '#4393c3').attr('stroke-width', 2)
             }
-            d3.event.stopPropagation()
-
             // 绘制子图
             this.$axios.get('files/getSubGraphData', {
               fileid: d.fileid
@@ -359,6 +374,23 @@ export default {
               this.path = this.filesList[d.fileid]
                 .replace(/E:\\Workspace\\Visualization\\srcCodeHelperServer\\data\\d3\\src\\/g, '')
           } 
+          else{
+            if(this.filesList[d.fileid])
+              this.svg.append('text')
+                .attr('class','node-text')
+                .text(this.filesList[d.fileid].substr(this.filesList[d.fileid].lastIndexOf('\\')+1))
+                .attr('x', d.y).attr('y', d.x)
+                .attr('dx','0.4em')
+                .attr('font-size', '12px')
+            else
+              this.svg.append('text')
+                .attr('class','node-text')
+                .text(d.fileid.substr(d.fileid.lastIndexOf('\\')+1))
+                .attr('x', d.y).attr('y', d.x)
+                .attr('dx','0.4em')
+                .attr('font-size', '12px')
+          }
+          d3.event.stopPropagation()
         })
         // .call(d3.drag()
         //   .on("start", dragstarted)
@@ -371,6 +403,7 @@ export default {
           this.resetState()
           this.$bus.$emit('link-clear', null)
         }
+        this.svg.selectAll('.node-text').remove()
       })
       this.nodes.append("title")
         .text((d) => {
