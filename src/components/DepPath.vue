@@ -447,6 +447,7 @@ export default {
         .attr('stroke', 'white')
         .attr('stroke-width', 1)
         .attr('opacity', 1)
+      this.svg.select('.path-arrow').remove()
       this.links.attr('opacity', 1).attr('stroke-width', 0.3)
       this.isSelected = false
       this.type = null
@@ -568,13 +569,27 @@ export default {
       this.$axios.get('files/getPathInfoById', {
         id: pathid
       }).then(({ data }) => {
+        this.resetState()
+        this.svg
+          .append("defs")
+          .append("marker")
+          .attr('class', 'path-arrow')
+          .attr("id", "detail-path-arrow")
+          .attr("viewBox", "5 -5 20 20")
+          .attr("refX", 0)
+          .attr('refY', 0)
+          .attr("markerWidth", 15)
+          .attr("markerHeight", 15)
+          .attr('orient', 'auto')
+          .append("path")
+          .attr("d", "M15,-5L15,5L5,0")
         let path = data.path
         if(d.type !== 'long'){
           path.push(path[0])
         }
-        this.resetState()
         this.nodes.attr('opacity', 0.2).attr('r', this.defaultR)
         this.links.attr('opacity', 0.2).attr('stroke-width', 0.3)
+          .attr("marker-start",null);
         this.nodes.filter(node =>path.indexOf(node.fileid) !== -1)
           .attr('fill',this.colorMap[data.type])
           .attr('r', 4)
@@ -583,6 +598,7 @@ export default {
           this.links.filter(link =>link.source.fileid === path[i] && link.target.fileid === path[i+1])
             .attr('opacity', 1)
             .attr('stroke-width', 1)
+            .attr("marker-start","url(#detail-path-arrow)");
         }
       })
     })
