@@ -241,18 +241,32 @@ export default {
       let vm = this
       var simulation
       if(this.libName === 'vue'){
-        simulation = d3.forceSimulation()
-          .force("link", d3.forceLink().id(function(d) { return d.fileid; }))
-          .force("charge", d3.forceManyBody().strength(-200).distanceMin(30).distanceMax(100))
-          .force("center", d3.forceCenter(this.svgHeight  / 2, this.svgWidth/ 2))
-          .force('collision', d3.forceCollide().radius(function(d) { return 10 }))
+        if(data.nodes.length > 10)
+          simulation = d3.forceSimulation()
+            .force("link", d3.forceLink().id(function(d) { return d.fileid; }))
+            .force("charge", d3.forceManyBody().strength(-200).distanceMin(30).distanceMax(100))
+            .force("center", d3.forceCenter(this.svgHeight  / 2, this.svgWidth/ 2))
+            .force('collision', d3.forceCollide().radius(function(d) { return 10 }))
+        if(data.nodes.length <= 10)
+          simulation = d3.forceSimulation()
+            .force("link", d3.forceLink().id(function(d) { return d.fileid; }))
+            .force("charge", d3.forceManyBody().strength(-200).distanceMin(100).distanceMax(150))
+            .force("center", d3.forceCenter(this.svgHeight  / 2, this.svgWidth/ 2))
+            .force('collision', d3.forceCollide().radius(function(d) { return Math.round(Math.random()*20)+30 }))
       }
      if(this.libName === 'd3'){
+       if(data.nodes.length > 40)
         simulation = d3.forceSimulation()
           .force("link", d3.forceLink().id(function(d) { return d.fileid }))
           .force("charge", d3.forceManyBody().strength(-90).distanceMin(20).distanceMax(80))
           .force("center", d3.forceCenter(this.svgHeight / 2 -25, this.svgWidth / 2 - 20))
           .force('collision', d3.forceCollide().radius(function(d) { return 10 }))
+      if(data.nodes.length <= 40)
+        simulation = d3.forceSimulation()
+          .force("link", d3.forceLink().id(function(d) { return d.fileid }))
+          .force("charge", d3.forceManyBody().strength(-90).distanceMin(20).distanceMax(80))
+          .force("center", d3.forceCenter(this.svgHeight / 2 -25, this.svgWidth / 2 - 20))
+          .force('collision', d3.forceCollide().radius(function(d) { return Math.round(Math.random()*20)+20 }))
       }
 
       simulation
@@ -648,6 +662,8 @@ export default {
     this.$bus.$on('depth-selected', d =>{
       this.depth = d
       this.updateGraph(this.depth)
+      if(this.depth === 1)
+        this.links.attr('stroke-width', 0.7)
     })
     this.$bus.$on('fileid-selected', d =>{
       if(this.depth != this.maxDepth)

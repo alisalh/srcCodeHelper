@@ -77,8 +77,8 @@ export default {
       selectedFileName: 'None',
       treeRoot: null,
       maxDepth: 0,
-      curDepth: 6, //vue: 1~6, d3: 1~3
-      libName: 'vue',
+      curDepth: 3, //vue: 1~6, d3: 1~3
+      libName: 'd3',
       similarNum: 10,
       isSelected: '1',
       filesInfo: null,
