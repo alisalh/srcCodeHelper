@@ -51,7 +51,8 @@ export default {
       //用于更新相似节点
       num: 10,
       obj: null,
-      selectId: null
+      selectId: null,
+      pathSelected: false
     }
   },
   props:['graphData', 'filesDist', 'root', 'filesList', 'maxDepth', 'colorMap', 'libName'],
@@ -261,14 +262,14 @@ export default {
         simulation = d3.forceSimulation()
           .force("link", d3.forceLink().id(function(d) { return d.fileid }))
           .force("charge", d3.forceManyBody().strength(-90).distanceMin(20).distanceMax(80))
-          .force("center", d3.forceCenter(this.svgHeight / 2 -25, this.svgWidth / 2 - 20))
+          .force("center", d3.forceCenter(this.svgHeight / 2 - 25, this.svgWidth / 2 - 20))
           .force('collision', d3.forceCollide().radius(function(d) { return 10 }))
           .stop()
       if(data.nodes.length <= 40)
         simulation = d3.forceSimulation()
           .force("link", d3.forceLink().id(function(d) { return d.fileid }))
           .force("charge", d3.forceManyBody().strength(-90).distanceMin(20).distanceMax(80))
-          .force("center", d3.forceCenter(this.svgHeight / 2 -25, this.svgWidth / 2 - 20))
+          .force("center", d3.forceCenter(this.svgHeight / 2 - 25, this.svgWidth / 2 - 20))
           .force('collision', d3.forceCollide().radius(function(d) { return Math.round(Math.random()*10)+20 }))
           .stop()
       }
@@ -319,6 +320,10 @@ export default {
           }
         })
         .attr("stroke-width", d => {
+          // if(this.directData.indexOf(d.source.fileid+'|'+d.target.fileid) != -1 && 
+          //   this.directData.indexOf(d.target.fileid+'|'+d.source.fileid) != -1){
+          //   return 0.3
+          // }
           return 0.3
         })
 
@@ -342,7 +347,8 @@ export default {
         .attr('stroke', 'white')
         .on('click', (d) => {
           if(this.depth === this.maxDepth){
-            if(!this.isSelected){
+            this.$bus.$emit('file-selected', this.filesList[d.fileid])
+            if(!this.isSelected && !this.pathSelected){
               this.resetState()
               // 点击节点显示相似节点
               let dist = this.filesDist.filter(dist => parseInt(dist.id) === d.fileid)[0],
@@ -367,23 +373,26 @@ export default {
             }
             else{
               // 比较节点的stroke上色
-              this.nodes.filter(node => node.fileid === d.fileid).attr('stroke', '#4393c3').attr('stroke-width', 2)
+              if(!this.pathSelected)
+                this.nodes.filter(node => node.fileid === d.fileid).attr('stroke', '#4393c3').attr('stroke-width', 2)
             }
-            // 绘制子图
-            this.$axios.get('files/getSubGraphData', {
-              fileid: d.fileid
-            }).then(({ data }) => {
-              var subGraphData = data.subGraph
-              if(!this.isSelected){
-                // 未选择节点时绘制selected nodes
-                this.drawSubGraph('selected', d.fileid, subGraphData)
-                this.isSelected = true
-              }
-              else{
-                // 已选中节点时绘制compared nodes
-                this.drawSubGraph('compared', d.fileid, subGraphData)
-              }
-            })
+            if(!this.pathSelected){
+              // 绘制子图
+              this.$axios.get('files/getSubGraphData', {
+                fileid: d.fileid
+              }).then(({ data }) => {
+                var subGraphData = data.subGraph
+                if(!this.isSelected){
+                  // 未选择节点时绘制selected nodes
+                  this.drawSubGraph('selected', d.fileid, subGraphData)
+                  this.isSelected = true
+                }
+                else{
+                  // 已选中节点时绘制compared nodes
+                  this.drawSubGraph('compared', d.fileid, subGraphData)
+                }
+              })
+            }            
             this.type = 'file'
             if(this.libName === 'vue')
               this.path = this.filesList[d.fileid]
@@ -391,6 +400,15 @@ export default {
             if(this.libName === 'd3')
               this.path = this.filesList[d.fileid]
                 .replace(/E:\\Workspace\\Visualization\\srcCodeHelperServer\\data\\d3\\src\\/g, '')
+            if(this.pathSelected){
+              this.svg.append('text')
+                .attr('class','path-text')
+                .text(this.path.substr(this.path.lastIndexOf('\\')+1))
+                .attr('x', d.y).attr('y', d.x)
+                .attr('dx','0.5em')
+                .attr('dy', '0.4em')
+                .attr('font-size', '12px')
+            }
           } 
           else{
             if(this.filesList[d.fileid])
@@ -505,13 +523,16 @@ export default {
       this.svg.select('.path-arrow').remove()
       this.links.attr('opacity', 1).attr('stroke-width', 0.3)
       this.isSelected = false
+      this.pathSelected = false
       this.type = null
       this.path = null
       this.obj = null
       d3.select('#selected').select('svg').remove()
       d3.select('#compared').select('svg').remove()
+      d3.selectAll('.path-text').remove()
     },
     drawSubGraph(divID, fileid, subGraphData){
+      let vm = this
       d3.select('#'+divID).select('svg').remove()
       var subSvg = d3.select('#'+divID).append("svg")
         .attr("width", this.subSvgWidth)
@@ -536,6 +557,10 @@ export default {
         .data(subGraphData.links)
         .enter().append("line")
         .style("stroke", (d, i) =>{
+          if(this.directData.indexOf(d.source.fileid+'|'+d.target.fileid) != -1 && 
+            this.directData.indexOf(d.target.fileid+'|'+d.source.fileid) != -1){
+            return '#525252'
+          }
           let linearGradient = subSvg.append('defs')
             .append('linearGradient')
             .attr('id', divID+'linear-gradient'+i)
@@ -578,6 +603,10 @@ export default {
           .attr("x2", function(d) { return d.target.x })
           .attr("y2", function(d) { return d.target.y })
           .style("stroke", (d, i) =>{
+            if(vm.directData.indexOf(d.source.fileid+'|'+d.target.fileid) != -1 && 
+              vm.directData.indexOf(d.target.fileid+'|'+d.source.fileid) != -1){
+              return '#525252'
+            }
             subSvg.select('#'+divID+'linear-gradient'+i)
               .attr('x1', d.source.x)
               .attr('y1', d.source.y)
@@ -631,6 +660,7 @@ export default {
         id: pathid
       }).then(({ data }) => {
         this.resetState()
+        this.pathSelected = true
         this.svg
           .append("defs")
           .append("marker")
@@ -648,8 +678,8 @@ export default {
         if(d.type !== 'long'){
           path.push(path[0])
         }
-        this.nodes.attr('opacity', 0.2).attr('r', this.defaultR)
-        this.links.attr('opacity', 0.2).attr('stroke-width', 0.3)
+        this.nodes.attr('opacity', 0.05).attr('r', this.defaultR)
+        this.links.attr('opacity', 0.05).attr('stroke-width', 0.3)
           .attr("marker-start",null);
         this.nodes.filter(node =>path.indexOf(node.fileid) !== -1)
           .attr('fill',this.colorMap[data.type])
@@ -676,11 +706,13 @@ export default {
     this.$bus.$on('depth-selected', d =>{
       this.depth = d
       this.updateGraph(this.depth)
-      if(this.depth === 1)
-        this.links.attr('stroke-width', 0.7)
+      // if(this.depth === 1)
+      //   this.links.attr('stroke-width', 1)
     })
     this.$bus.$on('fileid-selected', d =>{
       if(this.depth != this.maxDepth)
+        return
+      if(this.pathSelected)
         return 
       this.resetState()
       this.isSelected = true
@@ -799,5 +831,4 @@ export default {
     }
   }
 }
-
 </style>

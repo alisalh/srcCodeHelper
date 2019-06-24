@@ -15,7 +15,7 @@
           <div class='text-div'>Number</div>
           <div class='slider-div'>
             <el-slider v-model="similarNum" :step="1"
-              :min="1" :max="20" size="mini">
+              :min="1" :max="50" size="mini">
             </el-slider>
             <el-input v-model="similarNum" size="mini"></el-input>
           </div>
@@ -77,8 +77,8 @@ export default {
       selectedFileName: 'None',
       treeRoot: null,
       maxDepth: 0,
-      curDepth: 3, //vue: 1~6, d3: 1~3
-      libName: 'd3',
+      curDepth: 6, //vue: 6, d3: 3
+      libName: 'vue',
       similarNum: 10,
       isSelected: '1',
       filesInfo: null,

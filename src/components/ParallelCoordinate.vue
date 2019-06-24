@@ -17,7 +17,7 @@ export default {
       y: {}
     }
   },
-  props: ['filesInfo'],
+  props: ['filesInfo', 'libName'],
   watch: {
     filesInfo(val) {
       if (val !== null) {
@@ -62,7 +62,7 @@ export default {
       this.dimensions.forEach((d) => {
         this.y[d] = d3.scaleLinear()
           .domain(d3.extent(this.chartData, function(p) {
-            return +p[d];
+            return p[d];
           }))
           .range([height, 0])
       })
@@ -94,7 +94,14 @@ export default {
 
       g.append("g")
         .attr("class", "axis")
-        .each(function(d) { d3.select(this).call(d3.axisLeft(that.y[d])); })
+        .each(function(d) { 
+          if(d === 'indirect' && that.libName === 'd3')
+            d3.select(this).call(d3.axisLeft(that.y[d]).tickValues([0,1,2,3,4,5]).tickFormat(d3.format(",.0f"))) 
+          else if(d === 'direct' && that.libName === 'vue')
+            d3.select(this).call(d3.axisLeft(that.y[d]).tickValues([0,1,2]).tickFormat(d3.format(",.0f"))) 
+          else
+            d3.select(this).call(d3.axisLeft(that.y[d])) 
+        })
         .append("text")
         .attr("fill", "black")
         .style("text-anchor", "middle")
@@ -159,7 +166,7 @@ export default {
     }
   },
   mounted() {
-    let x = d3.scaleOrdinal().range([0, 1000]).domain(['a', 'b', 'c'])
+    // let x = d3.scaleOrdinal().range([0, 1000]).domain(['a', 'b', 'c'])
     this.svgWidth = Math.floor(this.$refs.root.clientWidth)
     this.svgHeight = Math.floor(this.$refs.root.clientHeight)
     this.extents = this.dimensions.map(function(p) { return [0, 0]; })
