@@ -128,6 +128,8 @@ export default {
       }
       this.maxDepended = maxDependedVal
       this.maxDepending = maxDependingVal
+      this.$bus.$emit('dependData', 
+        {depended: this.dependedData, depending: this.dependingData, maxDepended: this.maxDepended, maxDepending: this.maxDepending})
     },
     drawHierachy() {
       let vm = this
@@ -409,8 +411,6 @@ export default {
             let temp = this.dependedData.find(item => item.fileid === d.data.id)
             if(temp.depended > 0)
               return compute(linear(temp.depended))
-            // else
-            //   return '#fff7bc'
           }
           return '#eeebe6'
         })
@@ -427,8 +427,6 @@ export default {
             let temp = this.dependingData.find(item => item.fileid === d.data.id)
             if(temp.depending > 0)
               return compute(linear(temp.depending))
-            // else
-            //   return '#fff7bc'
           }
           return '#eeebe6'
         })

@@ -34,7 +34,7 @@
     </div>
     <div class="center-panel">
       <div class="first-row bl-card-shadow">
-        <dep-path :graphData="graphData" :filesDist="filesDist" :root="treeRoot" :filesList="filesList" :maxDepth="maxDepth" :colorMap='colorMap' :libName='libName'></dep-path>
+        <dep-path :graphData="graphData" :filesDist="filesDist" :root="treeRoot" :filesList="filesList" :dirs='dirs' :maxDepth="maxDepth" :colorMap='colorMap' :libName='libName'></dep-path>
       </div>
       <div class="second-row bl-card-shadow">
         <parallel-coordinate :filesInfo="filesInfo" class='parallel-coordinate'></parallel-coordinate>
@@ -88,6 +88,7 @@ export default {
       coordinates: null,
       dependedData: null,
       dependingData: null,
+      dirs: [],
       colorMap: { long: '#377eb8', indirect: '#66c2a5', direct: '#bf812d' }
     }
   },
@@ -138,6 +139,13 @@ export default {
         // 暂无参数
       }).then(({ data }) => {
         this.filesDist = data
+      })
+    },
+    getDirs(){
+      this.$axios.get('files/getDirs', {
+        // 暂无参数
+      }).then(({ data }) => {
+        this.dirs = data
       })
     },
     getGraphData(){
@@ -191,6 +199,7 @@ export default {
     this.getFilesInfo()
     this.getFilesDist()
     this.getGraphData()
+    this.getDirs()
   }
 }
 
