@@ -4,7 +4,6 @@
 </template>
 <script type="text/javascript">
 import * as d3 from 'd3'
-
 export default {
   data() {
     return {
@@ -13,8 +12,7 @@ export default {
       links: null,
       defaultR: 4,
       depData: null,
-      color: '#bdbdbd',
-      subSvg: null,
+      color: '#d9d9d9',
       svgWidth: 0,
       svgHeight: 0,
       isSelected: false,
@@ -23,10 +21,10 @@ export default {
       //用于更新相似节点
       num: 10,
       obj: null,
-      selectId: null,
       pathSelected: false,
       arcs: null,
-      dependData: null,
+      depended: null,
+      depending: null,
       maxDepended: 0,
       maxDepending: 0,
       dependType: '1', // '1'表示被其他文件引用，'2'表示引用其他文件
@@ -132,7 +130,7 @@ export default {
       // 保留graphData的完整数据, 用于还原grah
       // 复制node
       this.graphData.nodes.forEach(node => {
-        newGraphData.nodes.push({fileid: node.fileid, x: node.x, y: node.y})
+        newGraphData.nodes.push({fileid: node.fileid, depended: node.depended, depending: node.depending, r: node.r, x: node.x, y: node.y})
       })
       // 复制link
       this.graphData.links.forEach(link =>{
@@ -157,11 +155,13 @@ export default {
           fileids.push(index)
         })
         // 利用平均位置初始化
-        let x = 0, y = 0
+        let x = 0, y = 0, depended = 0, depending = 0
         newGraphData.nodes.forEach(d => {
           if(fileids.indexOf(d.fileid) != -1){
             x = x+d.x
             y = y+d.y
+            depended = depended+d.depended
+            depending = depending+ d.depending
           }
         })
         x = x/fileids.length
@@ -169,7 +169,8 @@ export default {
         // 保留在当前层的文件节点
         newGraphData.nodes = newGraphData.nodes.filter(d => fileids.indexOf(d.fileid) === -1)
         //加入当前文件夹节点
-        newGraphData.nodes.push({fileid: node.data.name, size: fileids.length, x: x, y: y})
+        newGraphData.nodes.push({fileid: node.data.name, size: fileids.length, depended: depended, 
+                            depending: depending, r: fileids.length/10+this.defaultR+5, x: x, y: y})
         // 更新link
         let links = new Set()
         newGraphData.links.forEach(link =>{
@@ -216,15 +217,14 @@ export default {
       d3.select('.dep-path').selectAll('svg *').remove()
       this.drawLinkMark()
       let vm = this
-
       var simulation
       if(this.libName === 'vue'){
         simulation = d3.forceSimulation()
           .force("link", d3.forceLink().id(function(d) { return d.fileid; }))
-          .force("charge", d3.forceManyBody().strength(-250).distanceMin(50).distanceMax(130))
+          .force("charge", d3.forceManyBody().strength(-220).distanceMin(50).distanceMax(100))
           .force("center", d3.forceCenter(this.svgHeight  / 2, this.svgWidth/ 2))
-          .force('collision', d3.forceCollide().radius(function(d) { return 15 }))
-          // .stop()
+          .force('collision', d3.forceCollide().radius(function(d) { return d.r*2 + 10 }))
+          .stop()
       }
      if(this.libName === 'd3'){
         simulation = d3.forceSimulation()
@@ -233,11 +233,9 @@ export default {
           .force("center", d3.forceCenter(this.svgHeight / 2 - 25, this.svgWidth / 2 - 20))
           .force('collision', d3.forceCollide().radius(function(d) { return 10 }))
       }
-
       simulation
         .nodes(data.nodes)
         .on("tick", ticked);
-
       simulation.force("link")
         .links(data.links)
 
@@ -245,8 +243,6 @@ export default {
         .attr("class", "links")
         .selectAll("line")
         .data(data.links)
-      this.links.exit().remove()
-      this.links = this.links
         .enter().append("line")
         .style("stroke", (d, i) =>{
           if(this.directData.indexOf(d.source.fileid+'|'+d.target.fileid) != -1 && 
@@ -281,34 +277,24 @@ export default {
           return 0.3
         })
      
-         // 颜色色卡
+      // 颜色色卡
       var a = d3.rgb(165,0,38), b = d3.rgb(253,174,97)
       var computeNode = d3.interpolate(a, b)
       function up(x, y) {return x.val -y.val}
-
       this.nodes = this.svg.append("g")
         .attr("class", "nodes")
         .selectAll("circle")
         .data(data.nodes)
-      this.nodes.exit().remove()
-      this.nodes = this.nodes
         .enter().append("circle")
         .attr('id', d => 'circle'+d.index)
-        .attr("r", d => {
-          if(this.depth === this.maxDepth)
-            return this.defaultR
-          else{
-            if(d.size)
-              return (d.size/10+2+this.defaultR)
-            else
-              return this.defaultR
-          }
-        })
+        .attr("r", d => d.r)
         .attr("fill", this.color)
         .attr('stroke', 'white')
-      this.nodes.on('click', (d) => {
+        .on('click', (d) => {
           if(this.depth === this.maxDepth){
             this.$bus.$emit('file-selected', this.filesList[d.fileid])
+            this.$bus.$emit('graph-fileid-selected', d.fileid)
+            // 无选中节点
             if(!this.isSelected && !this.pathSelected){
               this.resetState()
               // 点击节点显示相似节点
@@ -326,27 +312,23 @@ export default {
               fileid.forEach((id, i) =>{
                 this.nodes.filter(node => node.fileid === id)
                   .attr('fill', computeNode(linearNode(val[i])))
-                  .attr('r', 4)
               })
-              // 当前点击节点的半径最大
-              this.selectId = d.fileid
             }
             if(!this.pathSelected){
-              // 绘制子图
-              this.$axios.get('files/getSubGraphData', {
-                fileid: d.fileid
-              }).then(({ data }) => {
-                var subGraphData = data.subGraph
-                if(!this.isSelected)
-                  this.isSelected = true
-              })
+              d3.selectAll('.select-marker').remove()
+              // 绘制箭头
+              this.svg.append('g')
+                .attr('class', 'select-marker')
+                .attr("viewBox", "5 -5 20 20")
+                .attr("refX", 0)
+                .attr('refY', 0)
+                .attr("markerWidth", 15)
+                .attr("markerHeight", 15)
+                .attr('orient', 'auto')
+                .append("path")
+                .attr("d", "M15,-5L15,5L5,0")
+                .attr('transform', 'translate('+d.y+','+d.x+') rotate(90)')
             }            
-            if(this.libName === 'vue')
-              this.path = this.filesList[d.fileid]
-                .replace(/E:\\Workspace\\Visualization\\srcCodeHelperServer\\data\\vue\\src\\/g, '')
-            if(this.libName === 'd3')
-              this.path = this.filesList[d.fileid]
-                .replace(/E:\\Workspace\\Visualization\\srcCodeHelperServer\\data\\d3\\src\\/g, '')
             if(this.pathSelected){
               this.svg.append('text')
                 .attr('class','path-text')
@@ -375,35 +357,43 @@ export default {
           }
           d3.event.stopPropagation()
         })
+        .on('mouseover', d => {
+          if(!this.pathSelected)
+            this.links.filter(link => link.source.fileid === d.fileid || link.target.fileid === d.fileid)
+              .attr('stroke-width', 2)
+        })
+        .on('mouseout', d => {
+          if(!this.pathSelected)
+            this.links.attr('stroke-width', 0.3)
+        })
      
-      // // 颜色色卡
-      // var c = d3.rgb(158,202,225), d = d3.rgb(8,81,156)
-      // var computeArc = d3.interpolate(c, d)
-      // var linearArc = d3.scaleLinear().domain([1, this.maxDepended]).range([0, 1])
-
-      // // 插入arcs
-      // var arc = d3.arc()
-      //   .outerRadius(this.defaultR+2.5)
-      //   .innerRadius(this.defaultR)
-      //   .startAngle(0)
-      //   .endAngle(Math.PI*2)
-      // this.arcs = this.svg.append('g')
-      //   .attr("class", "arcs")
-      //   .selectAll(".arcs")
-      //   .data(data.nodes)
-      //   .enter().append("path")
-      //   .attr('d', arc)
-      //   .attr('fill', d => {
-      //     if(this.dependData[d.fileid].depend[0] === 0)
-      //       return '#bdbdbd'
-      //     return computeArc(linearArc(this.dependData[d.fileid].depend[0]))
-      //   })
-      //   .attr('transform', d => 'translate('+ d.y + ',' + d.x +')')
+      // 颜色色卡
+      var c = d3.rgb(158,202,225), d = d3.rgb(8,81,156)
+      var computeArc = d3.interpolate(c, d)
+      var linearArc = d3.scaleLinear().domain([1, this.maxDepended]).range([0, 1])
+      // 插入arcs
+      var arc = d3.arc()
+        .outerRadius(this.defaultR+2.5)
+        .innerRadius(this.defaultR)
+        .startAngle(0)
+        .endAngle(Math.PI*2)
+      this.arcs = this.svg.append('g')
+        .attr("class", "arcs")
+        .selectAll(".arcs")
+        .data(data.nodes.filter(d=>!d.size))
+        .enter().append("path")
+        .attr('d', arc)
+        .attr('fill', d => {
+          if(d.depended === 0)
+            return '#bdbdbd'
+          return computeArc(linearArc(d.depended))
+        })
+        .attr('transform', d => 'translate('+ d.y + ',' + d.x +')')
       
       this.svg.on('click', ()=>{
         if(this.depth === this.maxDepth){
           this.resetState()
-          this.$bus.$emit('link-clear', null)
+          this.$bus.$emit('graph-fileid-selected', null)
         }
         this.svg.selectAll('.node-text').remove()
       })
@@ -433,13 +423,12 @@ export default {
         return d
       }
      
-      // // 停止动画
-      // let n = Math.ceil(Math.log(simulation.alphaMin()) / Math.log(1 - simulation.alphaDecay()))
-      // for(let i=0; i < n; ++i) {
-      //   simulation.tick()
-      // }
-      // simulation.restart()
-
+      // 停止动画
+      let n = Math.ceil(Math.log(simulation.alphaMin()) / Math.log(1 - simulation.alphaDecay()))
+      for(let i=0; i < n; ++i) {
+        simulation.tick()
+      }
+      simulation.restart()
       function ticked() {
         vm.nodes
           .attr("cx", function(d) { return boundX(d.y) })
@@ -463,8 +452,8 @@ export default {
               return 'url(#link-gradient'+i+')'
             }
           })
-        // vm.arcs
-        //   .attr('transform', d => 'translate('+ d.y + ',' + d.x +')')
+        vm.arcs
+          .attr('transform', d => 'translate('+ d.y + ',' + d.x +')')
       }
     },
     resetState(){
@@ -476,7 +465,9 @@ export default {
       this.isSelected = false
       this.pathSelected = false
       this.obj = null
+      this.arcs.attr('opacity', 1)
       d3.selectAll('.path-text').remove()
+      d3.selectAll('.select-marker').remove()
     },
   },
   watch: {
@@ -487,17 +478,17 @@ export default {
       if(val === '1'){
         let linearArc = d3.scaleLinear().domain([1, this.maxDepended]).range([0, 1])
         this.arcs.attr('fill', d =>{
-          if(this.dependData[d.fileid].depend[0] === 0)
+          if(d.depended === 0)
             return '#bdbdbd'
-          return computeArc(linearArc(this.dependData[d.fileid].depend[0]))
+          return computeArc(linearArc(d.depended))
         }) 
       }
       if(val === '2'){
         let linearArc = d3.scaleLinear().domain([1, this.maxDepending]).range([0, 1])
         this.arcs.attr('fill', d => {
-          if(this.dependData[d.fileid].depend[1] === 0)
+          if(d.depending === 0)
             return '#bdbdbd'
-          return computeArc(linearArc(this.dependData[d.fileid].depend[1]))
+          return computeArc(linearArc(d.depending))
         })
       }
     }
@@ -509,6 +500,11 @@ export default {
       this.$watch(d, val => {
         if(val) cnt++
         if(cnt === requiredData.length) {
+          this.graphData.nodes.forEach(node=>{
+            node['r'] = this.defaultR
+            node['depended'] = this.depended.filter(item => item.fileid === node.fileid)[0].depended
+            node['depending'] = this.depending.filter(item => item.fileid === node.fileid)[0].depending
+          })
           this.$axios.get('files/getDirect', {
           }).then(({data}) =>{
             this.directData = data     //直接循环依赖
@@ -528,23 +524,17 @@ export default {
     this.svg = d3.select('.dep-path').append("svg")
       .attr("width", this.svgWidth)
       .attr("height", this.svgHeight)
-
     // 圆环编码数据
     this.$bus.$on('dependData', data =>{
-      this.dependData = []
+      this.depended = data.depended,
+      this.depending = data.depending,
       this.maxDepending = data.maxDepending,
-      this.maxDepended = data.maxDepended,
-      data.depended.forEach(d =>{
-        this.dependData.push({fileid: d.fileid, 
-          depend: [d.depended, data.depending[d.fileid].depending]})
-      })
+      this.maxDepended = data.maxDepended
     })
-
     // 圆环类型切换
     this.$bus.$on('depend-type-selected', d =>{
       this.dependType = d
     })
-
     this.$bus.$on('path-selected', d=> {
       if(this.depth != this.maxDepth)
         return
@@ -576,8 +566,8 @@ export default {
           .attr("marker-start",null);
         this.nodes.filter(node =>path.indexOf(node.fileid) !== -1)
           .attr('fill',this.colorMap[data.type])
-          .attr('r', 4)
           .attr('opacity', 1)
+        this.arcs.attr('opacity', 0.05)
         for(let i=0; i< path.length - 1; i++){
           this.links.filter(link =>link.source.fileid === path[i] && link.target.fileid === path[i+1])
             .attr('opacity', 1)
@@ -591,47 +581,51 @@ export default {
         return
       this.resetState()
     })
-    this.$bus.$on('fileid-restored', () => {
-      if(this.depth != this.maxDepth)
-        return
-      this.resetState()
-    })
     this.$bus.$on('depth-selected', d =>{
       this.depth = d
       this.updateGraph(this.depth)
-      // if(this.depth === 1)
-      //   this.links.attr('stroke-width', 1)
     })
-    this.$bus.$on('fileid-selected', d =>{
+    this.$bus.$on('sunburst-fileid-selected', d =>{
       if(this.depth != this.maxDepth)
         return
       if(this.pathSelected)
         return 
       this.resetState()
-      this.isSelected = true
-      // 颜色色卡
-      var a = d3.rgb(165,0,38), b = d3.rgb(253,174,97)
-      var compute = d3.interpolate(a, b)
-      function up(x, y) {return x.val -y.val}
-      // 显示相似节点
-      let dist = this.filesDist.filter(dist => parseInt(dist.id) === d.fileid)[0],
-        fileid = [], val = []
-      this.obj = []
-      for(var key in dist)
-        this.obj.push({key: key, val: dist[key]})
-      this.obj.sort(up)
-      for(let i=0; i<this.num+1; i++){
-        fileid.push(parseInt(this.obj[i].key))
-        val.push(parseFloat(this.obj[i].val))
+      if(d){
+        let curNode = this.nodes.filter(node=>node.fileid===d)
+        this.svg.append('g')
+          .attr('class', 'select-marker')
+          .attr("viewBox", "5 -5 20 20")
+          .attr("refX", 0)
+          .attr('refY', 0)
+          .attr("markerWidth", 15)
+          .attr("markerHeight", 15)
+          .attr('orient', 'auto')
+          .append("path")
+          .attr("d", "M15,-5L15,5L5,0")
+          .attr('transform', 'translate('+curNode.attr('cx')+','+curNode.attr('cy')+') rotate(90)')
+        this.isSelected = true
+        // 颜色色卡
+        var a = d3.rgb(165,0,38), b = d3.rgb(253,174,97)
+        var compute = d3.interpolate(a, b)
+        function up(x, y) {return x.val -y.val}
+        // 显示相似节点
+        let dist = this.filesDist.filter(dist => parseInt(dist.id) === d)[0],
+          fileid = [], val = []
+        this.obj = []
+        for(var key in dist)
+          this.obj.push({key: key, val: dist[key]})
+        this.obj.sort(up)
+        for(let i=0; i<this.num+1; i++){
+          fileid.push(parseInt(this.obj[i].key))
+          val.push(parseFloat(this.obj[i].val))
+        }
+        var linear = d3.scaleLinear().domain([Math.min(...val), Math.max(...val)]).range([0, 1])
+        fileid.forEach((id, i) =>{
+          this.nodes.filter(node => node.fileid === id)
+            .attr('fill', compute(linear(val[i])))
+        })
       }
-      var linear = d3.scaleLinear().domain([Math.min(...val), Math.max(...val)]).range([0, 1])
-      fileid.forEach((id, i) =>{
-        this.nodes.filter(node => node.fileid === id)
-          .attr('fill', compute(linear(val[i])))
-          .attr('r', 4)
-      })
-      // 当前点击节点的半径最大
-      this.selectId = d.fileid
     })
     this.$bus.$on('similar-number-selected', d => {
       this.num = d
@@ -651,14 +645,11 @@ export default {
         fileid.forEach((id, i) =>{
           this.nodes.filter(node => node.fileid === id)
             .attr('fill', compute(linear(val[i])))
-            .attr('r', 4)
         })
-        this.nodes.filter(node => node.fileid === this.selectId).attr('r', 6)
       }
     })
   }
 }
-
 </script>
 <style type="text/css" lang="scss">
 .dep-path {

@@ -10,6 +10,8 @@ export default {
     return {
       deps: null,
       svg: null,
+      linkG: null,
+      newArc: null,
       svgWidth: null,
       svgHeight: 0,
       dependedData: null,
@@ -24,7 +26,8 @@ export default {
       fileDepInfo: null, // store dep info for each file
       centerSvg: null,
       node: null,
-      colorData:['#b90207','#cb181d','#fb6a4a','#fcbba1']
+      colorData:['#b90207','#cb181d','#fb6a4a','#fcbba1'],
+      selectedNode: null
     }
   },
   props: ['root', 'filesInfo', 'maxDepth', 'colorMap', 'libName'],
@@ -214,12 +217,12 @@ export default {
         newY = d3.scaleLinear().range([this.dendrogramR+20, this.dendrogramR+40]).domain([1, 0]);
       if(this.libName === 'vue')
         newY = d3.scaleLinear().range([this.dendrogramR, this.dendrogramR+20]).domain([1, 0]);
-      let newArc = d3.arc()
+      this.newArc = d3.arc()
         .startAngle(function(d) { return Math.max(0, Math.min(2 * Math.PI, newX(d.x0))); })
         .endAngle(function(d) { return Math.max(0, Math.min(2 * Math.PI, newX(d.x1))); })
         .innerRadius(function(d) { return Math.max(0, newY(d.y0)); })
         .outerRadius(function(d) { return Math.max(0, newY(d.y1)); })
-      var linkG = this.svg.append('g')
+      this.linkG = this.svg.append('g')
         .attr('class','linkG')
         .attr('transform', 'translate(' + this.svgWidth / 2 + ',' + (this.svgHeight / 2 + 30) + ')')
       let sourceColor = '#d8e9f6', targetColor = '#3d7db2'
@@ -228,22 +231,24 @@ export default {
           .style('stroke','white')
         if(d.depth === this.maxDepth){
           this.$bus.$emit('file-selected', d.data.name)
-          this.$bus.$emit('fileid-selected', {fileid: d.data.id})
+          this.$bus.$emit('sunburst-fileid-selected', d.data.id)
+          this.selectedNode = d
           if(this.dependType === '1')
-            drawSourceLinks(d)
+            this.drawSourceLinks(d)
           if(this.dependType === '2')
-            drawTargetLinks(d)
+            this.drawTargetLinks(d)
           this.node.select('#hierarchy-node-'+i)
             .style('stroke','#081d58')
         }
         d3.event.stopPropagation()
       })
       this.svg.on('click', d=>{
-        this.$bus.$emit('fileid-restored', null)
+        this.$bus.$emit('sunburst-fileid-selected', null)
         this.svg.selectAll('.linkG path').remove()
         this.svg.selectAll('.link-linear').remove()
         this.node.select('.hierarchy-node')
           .style('stroke','white')
+        this.selectedNode = null
       })
 
     // 添加文字
@@ -273,82 +278,82 @@ export default {
           else return name
         }
       })
-      
-      //绘制被引用的连线
-      function drawSourceLinks(d){
-        // 添加引用和被引用连线
-        vm.svg.selectAll('.linkG path').remove()
-        vm.svg.selectAll('.link-linear').remove()
-        let selectedFile = vm.filesInfo.filter(file => file.id === d.data.id)
-        let source = selectedFile[0].fileInfo.depended
-        // vm.$bus.$emit('fileid-selected', {fileid: d.data.id, nodes: source})
-        source.forEach(s => {
-          let temp = vm.root.leaves().find(node => node.data.id === s)
-          let start = newArc.centroid(temp), end = newArc.centroid(d)
-          let linearGradient = vm.svg.append('defs')
-            .append('linearGradient')
-            .attr('class', 'link-linear')
-            .attr('id', s+'linear-gradient')
-            .attr('gradientUnits','userSpaceOnUse')
-            .attr('x1', start[0])
-            .attr('y1', start[1])
-            .attr('x2', end[0])
-            .attr('y2', end[1])
-          linearGradient.append('stop')
-            .attr('offset', '0%')
-            .attr('stop-color', sourceColor)
-          linearGradient.append('stop')
-            .attr('offset', '33%')
-            .attr('stop-color', sourceColor)
-          linearGradient.append('stop')
-            .attr('offset', '66%')
-            .attr('stop-color', targetColor)
-          linearGradient.append('stop')
-            .attr('offset', '100%')
-            .attr('stop-color', targetColor)
-          linkG.append('path').attr('d', 'M'+start+'Q'+0+','+ 0+',' +end)
-            .attr('fill', 'none').attr('stroke', 'url(#'+s+'linear-gradient)')
-            .attr('stroke-width', 1.5)
-        })
-      }
-
-       //绘制引用的连线
-      function drawTargetLinks(d){
-        // 添加引用和被引用连线
-        vm.svg.selectAll('.linkG path').remove()
-        vm.svg.selectAll('.link-linear').remove()
-        let selectedFile = vm.filesInfo.filter(file => file.id === d.data.id)
-        let source = selectedFile[0].fileInfo.depending
-        // vm.$bus.$emit('fileid-selected', {fileid: d.data.id, nodes: source})
-        source.forEach(s => {
-          let temp = vm.root.leaves().find(node => node.data.id === s)
-          let start = newArc.centroid(temp), end = newArc.centroid(d)
-          let linearGradient = vm.svg.append('defs')
-            .append('linearGradient')
-            .attr('class', 'link-linear')
-            .attr('id', s+'linear-gradient')
-            .attr('gradientUnits','userSpaceOnUse')
-            .attr('x1', start[0])
-            .attr('y1', start[1])
-            .attr('x2', end[0])
-            .attr('y2', end[1])
-          linearGradient.append('stop')
-            .attr('offset', '0%')
-            .attr('stop-color', targetColor)
-          linearGradient.append('stop')
-            .attr('offset', '33%')
-            .attr('stop-color', targetColor)
-          linearGradient.append('stop')
-            .attr('offset', '66%')
-            .attr('stop-color', sourceColor)
-          linearGradient.append('stop')
-            .attr('offset', '100%')
-            .attr('stop-color', sourceColor)
-          linkG.append('path').attr('d', 'M'+start+'Q'+0+','+ 0+',' +end)
-            .attr('fill', 'none').attr('stroke', 'url(#'+s+'linear-gradient)')
-            .attr('stroke-width', 1.5)
-        })
-      }
+    },
+    //绘制被引用的连线
+    drawSourceLinks(d){
+      // 添加引用和被引用连线
+      let sourceColor = '#d8e9f6', targetColor = '#3d7db2'
+      this.svg.selectAll('.linkG path').remove()
+      this.svg.selectAll('.link-linear').remove()
+      let selectedFile = this.filesInfo.filter(file => file.id === d.data.id)
+      let source = selectedFile[0].fileInfo.depended
+      // vm.$bus.$emit('fileid-selected', {fileid: d.data.id, nodes: source})
+      source.forEach(s => {
+        let temp = this.root.leaves().find(node => node.data.id === s)
+        let start = this.newArc.centroid(temp), end = this.newArc.centroid(d)
+        let linearGradient = this.svg.append('defs')
+          .append('linearGradient')
+          .attr('class', 'link-linear')
+          .attr('id', s+'linear-gradient')
+          .attr('gradientUnits','userSpaceOnUse')
+          .attr('x1', start[0])
+          .attr('y1', start[1])
+          .attr('x2', end[0])
+          .attr('y2', end[1])
+        linearGradient.append('stop')
+          .attr('offset', '0%')
+          .attr('stop-color', sourceColor)
+        linearGradient.append('stop')
+          .attr('offset', '33%')
+          .attr('stop-color', sourceColor)
+        linearGradient.append('stop')
+          .attr('offset', '66%')
+          .attr('stop-color', targetColor)
+        linearGradient.append('stop')
+          .attr('offset', '100%')
+          .attr('stop-color', targetColor)
+        this.linkG.append('path').attr('d', 'M'+start+'Q'+0+','+ 0+',' +end)
+          .attr('fill', 'none').attr('stroke', 'url(#'+s+'linear-gradient)')
+          .attr('stroke-width', 1.5)
+      })
+    },
+    //绘制引用的连线
+    drawTargetLinks(d){
+      // 添加引用和被引用连线
+      let sourceColor = '#d8e9f6', targetColor = '#3d7db2'
+      this.svg.selectAll('.linkG path').remove()
+      this.svg.selectAll('.link-linear').remove()
+      let selectedFile = this.filesInfo.filter(file => file.id === d.data.id)
+      let source = selectedFile[0].fileInfo.depending
+      // vm.$bus.$emit('fileid-selected', {fileid: d.data.id, nodes: source})
+      source.forEach(s => {
+        let temp = this.root.leaves().find(node => node.data.id === s)
+        let start = this.newArc.centroid(temp), end = this.newArc.centroid(d)
+        let linearGradient = this.svg.append('defs')
+          .append('linearGradient')
+          .attr('class', 'link-linear')
+          .attr('id', s+'linear-gradient')
+          .attr('gradientUnits','userSpaceOnUse')
+          .attr('x1', start[0])
+          .attr('y1', start[1])
+          .attr('x2', end[0])
+          .attr('y2', end[1])
+        linearGradient.append('stop')
+          .attr('offset', '0%')
+          .attr('stop-color', targetColor)
+        linearGradient.append('stop')
+          .attr('offset', '33%')
+          .attr('stop-color', targetColor)
+        linearGradient.append('stop')
+          .attr('offset', '66%')
+          .attr('stop-color', sourceColor)
+        linearGradient.append('stop')
+          .attr('offset', '100%')
+          .attr('stop-color', sourceColor)
+        this.linkG.append('path').attr('d', 'M'+start+'Q'+0+','+ 0+',' +end)
+          .attr('fill', 'none').attr('stroke', 'url(#'+s+'linear-gradient)')
+          .attr('stroke-width', 1.5)
+      })
     },
     drawRadialStack(data) {
       //get StackData from badDeps
@@ -397,8 +402,8 @@ export default {
     dependType(val){
       this.svg.selectAll('.linkG path').remove()
       this.svg.selectAll('.link-linear').remove()
-       this.node.select('.hierarchy-node')
-          .style('stroke','white')
+      // this.node.select('.hierarchy-node')
+      //     .style('stroke','white')
       if(val === '1'){
         var a = d3.rgb(252,187,161), b = d3.rgb(185,2,7)
         var compute = d3.interpolate(a, b)
@@ -414,6 +419,8 @@ export default {
           }
           return '#eeebe6'
         })
+        if(this.selectedNode) this.drawSourceLinks(this.selectedNode)
+        
       }
       if(val === '2'){
         var a = d3.rgb(252,187,161), b = d3.rgb(185,2,7)
@@ -430,6 +437,7 @@ export default {
           }
           return '#eeebe6'
         })
+        if(this.selectedNode) this.drawTargetLinks(this.selectedNode)
       }
     }
   },
@@ -470,11 +478,27 @@ export default {
       this.node.filter(node => node.depth === this.maxDepth && d.indexOf(node.data.id) != -1)
         .attr('opacity', 1)
     })
-    this.$bus.$on('link-clear', () =>{
-      this.svg.selectAll('.linkG path').remove()
-      this.svg.selectAll('.link-linear').remove()
-      this.node.select('.hierarchy-node')
+    this.$bus.$on('graph-fileid-selected', d =>{
+      if(!d){
+        // 点击graph svg的时候还原状态
+        this.svg.selectAll('.linkG path').remove()
+        this.svg.selectAll('.link-linear').remove()
+        this.node.select('.hierarchy-node')
+          .style('stroke','white')
+        this.selectedNode = null
+      }else{
+        this.node.select('.hierarchy-node')
         .style('stroke','white')
+        this.node.each((node,i)=> {
+          if(node.depth === this.maxDepth && node.data.id === d){
+            this.node.select('#hierarchy-node-'+i)
+              .style('stroke','#081d58')
+            this.selectedNode = node
+            if(this.dependType === '1') this.drawSourceLinks(node)
+            if(this.dependType === '2') this.drawTargetLinks(node)
+          } 
+        })
+      }
     })
   }
 }
