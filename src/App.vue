@@ -30,7 +30,7 @@
       </div>
       <dep-hell-wrapper :root="treeRoot" :filesInfo="filesInfo" :maxDepth="maxDepth" :colorMap="colorMap" :libName='libName'>
       </dep-hell-wrapper>
-      <scatter-plot :coordinates="coordinates" :colorMap="colorMap" :libName='libName'></scatter-plot>
+      <scatter-plot :colorMap="colorMap" :libName='libName'></scatter-plot>
     </div>
     <div class="center-panel">
       <div class="first-row bl-card-shadow">
@@ -85,7 +85,6 @@ export default {
       filesDist: null,
       filesList: null,
       graphData: null,
-      coordinates: null,
       dependedData: null,
       dependingData: null,
       dirs: [],

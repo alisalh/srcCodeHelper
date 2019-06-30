@@ -16,7 +16,7 @@ export default {
         minLen: 0
     }
   },
-  props:['filteredCoordinates', 'colorMap', 'libName'],
+  props:['colorMap', 'libName'],
   methods: {
       drawLegend(data){
         var keys = Object.keys(data), val = Object.values(data)
@@ -41,7 +41,7 @@ export default {
         d3.select(this.$refs.root).selectAll('svg *').remove()
         var margin
         if(this.libName === 'vue')
-            margin ={top: 60, right: 30, bottom: 15, left: 20} 
+            margin ={top: 50, right: 0, bottom: 10, left: -10} 
         if(this.libName === 'd3')
             margin ={top: 80, right: 100, bottom: 30, left: 70} 
         const height = this.svgHeight,
@@ -86,7 +86,7 @@ export default {
         this.drawLegend(legendData)
         this.svg.on('click', d=>{
             circle.attr('opacity', 1)
-            this.$bus.$emit('path-restored', null)
+            this.$bus.$emit('path-selected', null)
         })
       }
   },
@@ -102,8 +102,8 @@ export default {
             this.minLen = d3.min(data.map(d => d.len))
             this.draw(data)
         })
-        this.$bus.$on('link-clear', ()=>{
-            this.svg.selectAll('circle').attr('opacity', 1)
+        this.$bus.$on('graph-fileid-selected', d=>{
+            if(!d) this.svg.selectAll('circle').attr('opacity', 1)
         })
     }
 }

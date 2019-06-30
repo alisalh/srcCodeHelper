@@ -28,6 +28,7 @@ export default {
       maxDepended: 0,
       maxDepending: 0,
       dependType: '1', // '1'表示被其他文件引用，'2'表示引用其他文件
+      badDeps: null
     }
   },
   props:['graphData', 'filesDist', 'root', 'filesList', 'dirs', 'maxDepth', 'colorMap', 'libName'],
@@ -130,7 +131,8 @@ export default {
       // 保留graphData的完整数据, 用于还原grah
       // 复制node
       this.graphData.nodes.forEach(node => {
-        newGraphData.nodes.push({fileid: node.fileid, depended: node.depended, depending: node.depending, r: node.r, x: node.x, y: node.y})
+        newGraphData.nodes.push({fileid: node.fileid, depended: node.depended, depending: node.depending, 
+                                badDepNum: node.badDepNum, r: node.r, x: node.x, y: node.y})
       })
       // 复制link
       this.graphData.links.forEach(link =>{
@@ -221,7 +223,7 @@ export default {
       if(this.libName === 'vue'){
         simulation = d3.forceSimulation()
           .force("link", d3.forceLink().id(function(d) { return d.fileid; }))
-          .force("charge", d3.forceManyBody().strength(-220).distanceMin(50).distanceMax(100))
+          .force("charge", d3.forceManyBody().strength(-200).distanceMin(50).distanceMax(130))
           .force("center", d3.forceCenter(this.svgHeight  / 2, this.svgWidth/ 2))
           .force('collision', d3.forceCollide().radius(function(d) { return d.r*2 + 10 }))
           .stop()
@@ -374,7 +376,7 @@ export default {
       // 插入arcs
       var arc = d3.arc()
         .outerRadius(this.defaultR+2.5)
-        .innerRadius(this.defaultR)
+        .innerRadius(this.defaultR-0.5)
         .startAngle(0)
         .endAngle(Math.PI*2)
       this.arcs = this.svg.append('g')
@@ -504,6 +506,8 @@ export default {
             node['r'] = this.defaultR
             node['depended'] = this.depended.filter(item => item.fileid === node.fileid)[0].depended
             node['depending'] = this.depending.filter(item => item.fileid === node.fileid)[0].depending
+            let badDepNum = this.badDeps[node.fileid].indirect + this.badDeps[node.fileid].direct
+            node['badDepNum'] = badDepNum
           })
           this.$axios.get('files/getDirect', {
           }).then(({data}) =>{
@@ -535,51 +539,40 @@ export default {
     this.$bus.$on('depend-type-selected', d =>{
       this.dependType = d
     })
+    // 获取每个文件的坏依赖数目
+    this.$axios.get('files/getStackData', {
+    }).then(({ data }) => {
+      this.badDeps = data
+    })
     this.$bus.$on('path-selected', d=> {
       if(this.depth != this.maxDepth)
         return
-      let pathid = parseInt(d)
-      this.$axios.get('files/getPathInfoById', {
-        id: pathid
-      }).then(({ data }) => {
-        this.resetState()
-        this.pathSelected = true
-        this.svg
-          .append("defs")
-          .append("marker")
-          .attr('class', 'path-arrow')
-          .attr("id", "detail-path-arrow")
-          .attr("viewBox", "5 -5 20 20")
-          .attr("refX", 0)
-          .attr('refY', 0)
-          .attr("markerWidth", 15)
-          .attr("markerHeight", 15)
-          .attr('orient', 'auto')
-          .append("path")
-          .attr("d", "M15,-5L15,5L5,0")
-        let path = data.path
-        if(d.type !== 'long'){
-          path.push(path[0])
-        }
-        this.nodes.attr('opacity', 0.05).attr('r', this.defaultR)
-        this.links.attr('opacity', 0.05).attr('stroke-width', 0.3)
-          .attr("marker-start",null);
-        this.nodes.filter(node =>path.indexOf(node.fileid) !== -1)
-          .attr('fill',this.colorMap[data.type])
-          .attr('opacity', 1)
-        this.arcs.attr('opacity', 0.05)
-        for(let i=0; i< path.length - 1; i++){
-          this.links.filter(link =>link.source.fileid === path[i] && link.target.fileid === path[i+1])
+      if(!d) this.resetState()
+      else{
+        let pathid = parseInt(d)
+        this.$axios.get('files/getPathInfoById', {
+          id: pathid
+        }).then(({ data }) => {
+          this.resetState()
+          this.pathSelected = true
+          let path = data.path
+          if(d.type !== 'long'){
+            path.push(path[0])
+          }
+          this.nodes.attr('opacity', 0.05).attr('r', this.defaultR)
+          this.links.attr('opacity', 0.05).attr('stroke-width', 0.3)
+          this.nodes.filter(node =>path.indexOf(node.fileid) !== -1)
+            .attr('fill',this.colorMap[data.type])
+            .attr('r', d =>d.badDepNum/10+this.defaultR)
             .attr('opacity', 1)
-            .attr('stroke-width', 1)
-            .attr("marker-start","url(#detail-path-arrow)");
-        }
-      })
-    })
-    this.$bus.$on('path-restored', () =>{
-      if(this.depth != this.maxDepth)
-        return
-      this.resetState()
+          this.arcs.attr('opacity', 0.05)
+          for(let i=0; i< path.length - 1; i++){
+            this.links.filter(link =>link.source.fileid === path[i] && link.target.fileid === path[i+1])
+              .attr('opacity', 1)
+              .attr('stroke-width', 1)
+          }
+        })
+      }
     })
     this.$bus.$on('depth-selected', d =>{
       this.depth = d
