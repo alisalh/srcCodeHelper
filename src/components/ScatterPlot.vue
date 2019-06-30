@@ -12,8 +12,10 @@ export default {
         xScale: null,
         yScale: null, 
         svg: null,
+        circle: null,
         maxLen: 0,
-        minLen: 0
+        minLen: 0,
+        selectedId: null
     }
   },
   props:['colorMap', 'libName'],
@@ -61,7 +63,7 @@ export default {
         var compute = d3.interpolate(4, 9) 
         var linear = d3.scaleLinear().domain([Math.sqrt(this.minLen), Math.sqrt(this.maxLen)]).range([0, 1])
         let legendData = {}
-        var circle = this.svg
+        this.circle = this.svg
             .append('g')
             .selectAll('.marker')
             .data(data)
@@ -77,16 +79,17 @@ export default {
             .attr('cy', d => y(parseFloat(d.y)))
             .attr('fill', d => this.colorMap[d.type])
             .on('click', d => {
-                circle.attr('opacity', 0.3)
-                circle.filter(dot => dot.id === d.id).attr('opacity', 1)
+                this.selectedId = d.id
+                this.circle.filter(dot => dot.id === d.id)
                     .attr('stroke', '#4393c3').attr('stroke-width', 2.5)
                 this.$bus.$emit('path-selected', d.id)
                 d3.event.stopPropagation()
             })
         this.drawLegend(legendData)
         this.svg.on('click', d=>{
-            circle.attr('opacity', 1)
+            this.circle.attr('stroke', null)
             this.$bus.$emit('path-selected', null)
+            this.selectedId = null
         })
       }
   },
@@ -103,7 +106,24 @@ export default {
             this.draw(data)
         })
         this.$bus.$on('graph-fileid-selected', d=>{
-            if(!d) this.svg.selectAll('circle').attr('opacity', 1)
+            if(!d) this.circle.attr('stroke', null)
+        })
+        this.$bus.$on('bad-fileid-selected', d=>{
+            if(!d) {
+                this.circle.attr('stroke', null)
+                this.circle.filter(dot => dot.id === this.selectedId)
+                    .attr('stroke', '#4393c3').attr('stroke-width', 2.5)
+            }
+            else{
+                this.$axios.get('files/getPathIdByFileId', {
+                    id: d
+                }).then(({ data }) => {
+                    data.forEach(pathid => {
+                        this.circle.filter(dot => dot.id === pathid)
+                            .attr('stroke', '#4393c3').attr('stroke-width', 2.5)
+                    });   
+                })
+            }
         })
     }
 }

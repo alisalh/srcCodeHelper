@@ -334,7 +334,7 @@ export default {
             if(this.pathSelected){
               this.svg.append('text')
                 .attr('class','path-text')
-                .text(this.path.substr(this.path.lastIndexOf('\\')+1))
+                .text(this.filesList[d.fileid].substr(this.filesList[d.fileid].lastIndexOf('\\')+1))
                 .attr('x', d.y).attr('y', d.x)
                 .attr('dx','0.5em')
                 .attr('dy', '0.4em')
@@ -565,6 +565,12 @@ export default {
             .attr('fill',this.colorMap[data.type])
             .attr('r', d =>d.badDepNum/10+this.defaultR)
             .attr('opacity', 1)
+            .on('mouseover', d => {
+                this.$bus.$emit('bad-fileid-selected', d.fileid)
+            })
+            .on('mouseout', d => {
+                this.$bus.$emit('bad-fileid-selected', null)
+            })
           this.arcs.attr('opacity', 0.05)
           for(let i=0; i< path.length - 1; i++){
             this.links.filter(link =>link.source.fileid === path[i] && link.target.fileid === path[i+1])
