@@ -462,16 +462,9 @@ export default {
       this.nodes.attr('fill', this.color)
         .attr('r', this.defaultR)
         .attr('opacity', 1)
-        .on('mouseover', d => {
-          if(!this.pathSelected)
-            this.links.filter(link => link.source.fileid === d.fileid || link.target.fileid === d.fileid)
-              .attr('stroke-width', 2)
-        })
-        .on('mouseout', d => {
-          if(!this.pathSelected)
-            this.links.attr('stroke-width', 0.3)
-        })
       this.svg.select('.path-arrow').remove()
+      this.svg.select('.badNodes').remove()
+      this.svg.select('.badLinks').remove()
       this.links.attr('opacity', 1).attr('stroke-width', 0.3)
       this.isSelected = false
       this.pathSelected = false
@@ -479,6 +472,8 @@ export default {
       this.arcs.attr('opacity', 1)
       d3.selectAll('.path-text').remove()
       d3.selectAll('.select-marker').remove()
+      d3.selectAll('.bad-link-gradient').remove()
+      
     },
   },
   watch: {
@@ -563,35 +558,122 @@ export default {
         }).then(({ data }) => {
           this.resetState()
           this.pathSelected = true
+          // dependency graph变透明
           this.nodes.attr('opacity', 0.05).attr('r', this.defaultR)
           this.links.attr('opacity', 0.05).attr('stroke-width', 0.3)
           this.arcs.attr('opacity', 0.05)
-          for(let i=0; i<data.length; i++){
-            let path = data[i].path
-            if(d.type !== 'long'){
-              path.push(path[0])
+
+          let badNodes = new Set(), badLinks = new Set(), 
+              directNodes = new Set(),directLinks = new Set()
+          for(let i=0; i<data.subPaths.length; i++){
+            // 直接依赖数据
+            if(data.subPaths[i].type === 'direct'){
+              directNodes.add(data.subPaths[i].path[0])
+              directNodes.add(data.subPaths[i].path[1])
+              directLinks.add(data.subPaths[i].path[0]+'|'+data.subPaths[i].path[1])
+              directLinks.add(data.subPaths[i].path[1]+'|'+data.subPaths[i].path[0])
             }
-            this.nodes.filter(node =>path.indexOf(node.fileid) !== -1)
-              .attr('fill',this.colorMap[data[i].type])
-              .attr('r', this.defaultR+2)
-              .attr('opacity', 1)
-              .on('mouseover', d => {
-                if(data.length === 1)
-                  this.$bus.$emit('bad-fileid-selected', d.fileid)
-              })
-              .on('mouseout', d => {
-                if(data.length === 1)
-                  this.$bus.$emit('bad-fileid-selected', null)
-              })
-            for(let i=0; i< path.length - 1; i++){
-              this.links.filter(link =>link.source.fileid === path[i] && link.target.fileid === path[i+1])
-                .attr('opacity', 1)
-                .attr('stroke-width', 1)
+            let path = data.subPaths[i].path
+            path.push(path[0])
+            for(let j=0; j<path.length-1; j++){
+              badNodes.add(path[j])
+              badLinks.add(path[j]+'|'+path[j+1])
             }
           }
+          badNodes = [...badNodes].map(d =>{
+            let curNode = this.nodes.filter(node => node.fileid === d)
+            return {fileid: d, x: curNode.attr('cx'), y: curNode.attr('cy'), 
+                    filename: this.filesList[d].substr(this.filesList[d].lastIndexOf('\\')+1)}
+          })
+          badLinks = [...badLinks].map(d =>{
+            let parts = d.split('|')
+            return { source: parseInt(parts[0]), target: parseInt(parts[1]) }
+          })
+          // 获取多个间接依赖中的直接依赖
+          for(let i=0; i<badLinks.length; i++){
+            for(let j=0; j<badLinks.length; j++){
+              if(i === j) continue
+              if((badLinks[i].source===badLinks[j].target) && (badLinks[i].target===badLinks[j].source)){
+                let s1 = badLinks[i].source+'|'+badLinks[i].target,
+                  s2 = badLinks[j].source+'|'+badLinks[j].target
+                directLinks.add(s1)
+                directLinks.add(s2)
+                break
+              }
+            }
+          }
+          directNodes = [...directNodes]
+          directLinks = [...directLinks]
+
+          //先绘制node再绘制link
+          this.svg.append('g').attr('class', 'badLinks')
+            .selectAll('line').data(badLinks)
+            .enter().append('line')
+            .attr('x1', d => badNodes.filter(node => node.fileid === d.source)[0].x)
+            .attr('y1', d => badNodes.filter(node => node.fileid === d.source)[0].y)
+            .attr('x2', d => badNodes.filter(node => node.fileid === d.target)[0].x)
+            .attr('y2', d => badNodes.filter(node => node.fileid === d.target)[0].y)
+            .attr('stroke', (d, i) => {
+              if(directLinks.indexOf(d.source+'|'+d.target) != -1 && 
+                directLinks.indexOf(d.target+'|'+d.source) != -1){
+                return '#525252'
+              }
+              else{
+                let linearGradient = this.svg.append('defs')
+                  .attr('class', 'bad-link-gradient')
+                  .append('linearGradient')
+                  .attr('id', 'bad-link-gradient'+i)
+                  .attr('gradientUnits','userSpaceOnUse')
+                  .attr('x1', badNodes.filter(node => node.fileid === d.source)[0].x)
+                  .attr('y1', badNodes.filter(node => node.fileid === d.source)[0].y)
+                  .attr('x2', badNodes.filter(node => node.fileid === d.target)[0].x)
+                  .attr('y2', badNodes.filter(node => node.fileid === d.target)[0].y)
+                  linearGradient.append('stop')
+                    .attr('offset', '0%')
+                    .attr('stop-color', '#d9d9d9')
+                  linearGradient.append('stop')
+                    .attr('offset', '33%')
+                    .attr('stop-color', '#d9d9d9')
+                  linearGradient.append('stop')
+                    .attr('offset', '66%')
+                    .attr('stop-color', '#525252')
+                  linearGradient.append('stop')
+                    .attr('offset', '100%')
+                    .attr('stop-color', '#525252')
+                  return 'url(#bad-link-gradient'+i+')'
+              }
+            })
+            this.svg.append('g').attr('class', 'badNodes')
+              .selectAll('circle').data(badNodes)
+              .enter().append('circle')
+              .attr('r', d=>{
+                if(data.subPaths.length === 1 && data.subIDs.length > 0){
+                  return data.subIDs.filter(item => item.fileid === d.fileid)[0].ids.length/10+this.defaultR
+                }
+                else return this.defaultR
+              })
+              .attr('cx', d => d.x)
+              .attr('cy', d => d.y)
+              .attr('fill', d => {
+                if(directNodes.indexOf(d.fileid) === -1)
+                  return this.colorMap['indirect']
+                else
+                  return this.colorMap['direct']
+              })
+              .on('mouseenter', d=>{
+                if(data.subPaths.length === 1){
+                  this.$bus.$emit('bad-fileid-selected', data.subIDs.filter(item => item.fileid === d.fileid)[0].ids)
+                }
+              })
+              .on('mouseleave', d=>{
+                if(data.subPaths.length === 1){
+                  this.$bus.$emit('bad-fileid-selected', null)
+                }
+              })
         })
       }
     })
+          
     this.$bus.$on('depth-selected', d =>{
       this.depth = d
       this.updateGraph(this.depth)

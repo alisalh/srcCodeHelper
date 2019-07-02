@@ -92,7 +92,7 @@ export default {
         this.svg.on('click', d=>{
             this.circle.attr('stroke', null)
             this.$bus.$emit('path-selected', [])
-            this.selectedId = null
+            // this.selectedId = null
         })
         var brush = d3.brush()
             .on("end", brushend)
@@ -112,6 +112,7 @@ export default {
                     ids.push(d.id)
                 }     
             })
+            if(ids.length === 1) vm.selectedId = ids[0]
             d3.select('.brush').call(brush.move, null)
             vm.$bus.$emit('path-selected', ids)
         }
@@ -139,14 +140,8 @@ export default {
                     .attr('stroke', '#4393c3').attr('stroke-width', 2.5)
             }
             else{
-                this.$axios.get('files/getPathIdByFileId', {
-                    id: d
-                }).then(({ data }) => {
-                    data.forEach(pathid => {
-                        this.circle.filter(dot => dot.id === pathid)
-                            .attr('stroke', '#4393c3').attr('stroke-width', 2.5)
-                    });   
-                })
+                this.circle.filter(dot => d.indexOf(dot.id) != -1)
+                    .attr('stroke', '#4393c3').attr('stroke-width', 2.5)
             }
         })
     }
