@@ -13,7 +13,6 @@ Vue.prototype.$axios=axios
 Vue.prototype.$bus = new Vue(); 
 Vue.use(ElementUI);
 Vue.use(Highlight);
-// Vue.use(lasso);
 
 	/* eslint-disable no-new */
 new Vue({

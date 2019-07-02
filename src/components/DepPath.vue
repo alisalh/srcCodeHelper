@@ -462,6 +462,15 @@ export default {
       this.nodes.attr('fill', this.color)
         .attr('r', this.defaultR)
         .attr('opacity', 1)
+        .on('mouseover', d => {
+          if(!this.pathSelected)
+            this.links.filter(link => link.source.fileid === d.fileid || link.target.fileid === d.fileid)
+              .attr('stroke-width', 2)
+        })
+        .on('mouseout', d => {
+          if(!this.pathSelected)
+            this.links.attr('stroke-width', 0.3)
+        })
       this.svg.select('.path-arrow').remove()
       this.links.attr('opacity', 1).attr('stroke-width', 0.3)
       this.isSelected = false
@@ -547,35 +556,38 @@ export default {
     this.$bus.$on('path-selected', d=> {
       if(this.depth != this.maxDepth)
         return
-      if(!d) this.resetState()
+      if(d.length === 0) this.resetState()
       else{
-        let pathid = parseInt(d)
         this.$axios.get('files/getPathInfoById', {
-          id: pathid
+          ids: d
         }).then(({ data }) => {
           this.resetState()
           this.pathSelected = true
-          let path = data.path
-          if(d.type !== 'long'){
-            path.push(path[0])
-          }
           this.nodes.attr('opacity', 0.05).attr('r', this.defaultR)
           this.links.attr('opacity', 0.05).attr('stroke-width', 0.3)
-          this.nodes.filter(node =>path.indexOf(node.fileid) !== -1)
-            .attr('fill',this.colorMap[data.type])
-            .attr('r', d =>d.badDepNum/10+this.defaultR)
-            .attr('opacity', 1)
-            .on('mouseover', d => {
-                this.$bus.$emit('bad-fileid-selected', d.fileid)
-            })
-            .on('mouseout', d => {
-                this.$bus.$emit('bad-fileid-selected', null)
-            })
           this.arcs.attr('opacity', 0.05)
-          for(let i=0; i< path.length - 1; i++){
-            this.links.filter(link =>link.source.fileid === path[i] && link.target.fileid === path[i+1])
+          for(let i=0; i<data.length; i++){
+            let path = data[i].path
+            if(d.type !== 'long'){
+              path.push(path[0])
+            }
+            this.nodes.filter(node =>path.indexOf(node.fileid) !== -1)
+              .attr('fill',this.colorMap[data[i].type])
+              .attr('r', this.defaultR+2)
               .attr('opacity', 1)
-              .attr('stroke-width', 1)
+              .on('mouseover', d => {
+                if(data.length === 1)
+                  this.$bus.$emit('bad-fileid-selected', d.fileid)
+              })
+              .on('mouseout', d => {
+                if(data.length === 1)
+                  this.$bus.$emit('bad-fileid-selected', null)
+              })
+            for(let i=0; i< path.length - 1; i++){
+              this.links.filter(link =>link.source.fileid === path[i] && link.target.fileid === path[i+1])
+                .attr('opacity', 1)
+                .attr('stroke-width', 1)
+            }
           }
         })
       }

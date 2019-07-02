@@ -51,7 +51,6 @@ import DepHellWrapper from './components/DepHellWrapper.vue'
 import DepPath from './components/DepPath.vue'
 import ParallelCoordinate from './components/ParallelCoordinate.vue'
 import Partition from './components/Partition.vue'
-import LineChart from './components/LineChart.vue'
 import BarChart from './components/BarChart.vue'
 import CodeChart from './components/CodeChart.vue'
 import ScatterPlot from './components/ScatterPlot.vue'
@@ -66,7 +65,6 @@ export default {
     DepPath,
     ParallelCoordinate,
     Partition,
-    LineChart,
     BarChart,
     CodeChart,
     ScatterPlot,

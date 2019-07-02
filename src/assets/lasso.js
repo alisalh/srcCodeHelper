@@ -1,5 +1,4 @@
 d3.lasso = function() {
-
     var items = null,
         closePathDistance = 75,
         closePathSelect = true,

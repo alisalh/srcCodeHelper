@@ -4,6 +4,7 @@
 </template>
 <script type="text/javascript">
 import * as d3 from 'd3'
+
 export default {
   data() {
     return {
@@ -41,9 +42,10 @@ export default {
       },
       draw(data){
         d3.select(this.$refs.root).selectAll('svg *').remove()
+        let vm = this
         var margin
         if(this.libName === 'vue')
-            margin ={top: 50, right: 0, bottom: 10, left: -10} 
+            margin ={top: 50, right: 0, bottom: 10, left: 0} 
         if(this.libName === 'd3')
             margin ={top: 80, right: 100, bottom: 30, left: 70} 
         const height = this.svgHeight,
@@ -65,11 +67,11 @@ export default {
         let legendData = {}
         this.circle = this.svg
             .append('g')
-            .selectAll('.marker')
+            .attr('class', 'circle')
+            .selectAll('circle')
             .data(data)
             .enter()
             .append('circle')
-            .attr('class', 'marker')
             .attr('r', d => {
                 let r = compute(linear(Math.sqrt(d.len)))
                 legendData[Math.round(r)] = d.len
@@ -78,20 +80,42 @@ export default {
             .attr('cx', d => x(parseFloat(d.x)))
             .attr('cy', d => y(parseFloat(d.y)))
             .attr('fill', d => this.colorMap[d.type])
-            .on('click', d => {
-                this.selectedId = d.id
-                this.circle.filter(dot => dot.id === d.id)
-                    .attr('stroke', '#4393c3').attr('stroke-width', 2.5)
-                this.$bus.$emit('path-selected', d.id)
-                d3.event.stopPropagation()
-            })
+            // .on('click', d => {
+            //     this.selectedId = d.id
+            //     this.circle.filter(dot => dot.id === d.id)
+            //         .attr('stroke', '#4393c3').attr('stroke-width', 2.5)
+            //     this.$bus.$emit('path-selected', [d.id])
+            //     d3.event.stopPropagation()
+            // })
+
         this.drawLegend(legendData)
         this.svg.on('click', d=>{
             this.circle.attr('stroke', null)
-            this.$bus.$emit('path-selected', null)
+            this.$bus.$emit('path-selected', [])
             this.selectedId = null
         })
-      }
+        var brush = d3.brush()
+            .on("end", brushend)
+            .extent([[margin.left, margin.top], [this.svgWidth-margin.right, this.svgHeight-margin.bottom]])
+        this.svg.append('g').attr('class', 'brush').call(brush)
+
+        function brushend(){
+            var s = d3.event.selection
+            if(!s) return
+            let left = s[0], right = s[1], ids = []
+            vm.circle.attr('stroke', null)
+            vm.circle.each(d => {
+                let curNode = vm.circle.filter(dot => dot.id === d.id)
+                let x = curNode.attr('cx'), y = curNode.attr('cy')
+                if(x > left[0] && x < right[0] && y > left[1] && y < right[1]){
+                    curNode.attr('stroke', '#4393c3').attr('stroke-width', 2.5)
+                    ids.push(d.id)
+                }     
+            })
+            d3.select('.brush').call(brush.move, null)
+            vm.$bus.$emit('path-selected', ids)
+        }
+    },
   },
     mounted(){
         this.svgHeight = Math.floor(this.$refs.root.clientHeight)
