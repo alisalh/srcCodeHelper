@@ -493,6 +493,8 @@ export default {
           if(node.depth === this.maxDepth && node.data.id === d){
             this.node.select('#hierarchy-node-'+i)
               .style('stroke','#081d58')
+            this.node.filter(node => node.data.id === d)
+              .attr('opacity', 1)
             this.selectedNode = node
             if(this.dependType === '1') this.drawSourceLinks(node)
             if(this.dependType === '2') this.drawTargetLinks(node)

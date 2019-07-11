@@ -180,7 +180,7 @@ export default {
   .background path {
     fill: none;
     stroke: #ddd;
-    stroke-opacity: .4;
+    stroke-opacity: .2;
     shape-rendering: crispEdges;
   }
 

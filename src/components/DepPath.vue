@@ -110,19 +110,19 @@ export default {
         .attr('marker-start',"url(#link-mark-left-arrow)")
       // 添加文字
       markG.append('text')
-        .text('A').style('font-size', '11px')
+        .text('M').style('font-size', '11px')
         .attr('dy', '0.4em')
         .attr('dx', '-1.2em')
       markG.append('text')
-        .text('A').style('font-size', '11px')
+        .text('M').style('font-size', '11px')
         .attr('dy', '2.5em')
         .attr('dx', '-1.2em')
       markG.append('text')
-        .text('B').style('font-size', '11px')
+        .text('N').style('font-size', '11px')
         .attr('dy', '0.4em')
         .attr('dx', '5.9em')
       markG.append('text')
-        .text('B').style('font-size', '11px')
+        .text('N').style('font-size', '11px')
         .attr('dy', '2.5em')
         .attr('dx', '5.9em')
     },
@@ -145,6 +145,8 @@ export default {
       let children= d3.partition()(this.root).descendants().slice(1)
       let dirNodes = children.filter(node => node.depth === depth && node.data.type ==='dir')
       let dirSize = {}
+      var compute = d3.interpolate(4, 15) 
+      var linear = d3.scaleLinear().domain([1, Math.sqrt(88)]).range([0, 1])
       dirNodes.forEach(node => {
         //无任何依赖的文件夹
         if(node.data.name === 'E:\\Workspace\\Visualization\\srcCodeHelperServer\\data\\vue\\src\\server\\webpack-plugin')
@@ -168,11 +170,12 @@ export default {
         })
         x = x/fileids.length
         y = y/fileids.length
+
         // 保留在当前层的文件节点
         newGraphData.nodes = newGraphData.nodes.filter(d => fileids.indexOf(d.fileid) === -1)
         //加入当前文件夹节点
         newGraphData.nodes.push({fileid: node.data.name, size: fileids.length, depended: depended, 
-                            depending: depending, r: fileids.length/10+this.defaultR+5, x: x, y: y})
+                            depending: depending, r: compute(linear(Math.sqrt(fileids.length)))+2, x: x, y: y})
         // 更新link
         let links = new Set()
         newGraphData.links.forEach(link =>{
@@ -231,9 +234,9 @@ export default {
      if(this.libName === 'd3'){
         simulation = d3.forceSimulation()
           .force("link", d3.forceLink().id(function(d) { return d.fileid }))
-          .force("charge", d3.forceManyBody().strength(-90).distanceMin(20).distanceMax(80))
-          .force("center", d3.forceCenter(this.svgHeight / 2 - 25, this.svgWidth / 2 - 20))
-          .force('collision', d3.forceCollide().radius(function(d) { return 10 }))
+          .force("charge", d3.forceManyBody().strength(-150).distanceMin(30).distanceMax(78))
+          .force("center", d3.forceCenter(this.svgHeight / 2 - 5, this.svgWidth / 2))
+          .force('collision', d3.forceCollide().radius(function(d) { return d.r*2 + 5}))
       }
       simulation
         .nodes(data.nodes)
@@ -300,6 +303,7 @@ export default {
             if(!this.isSelected && !this.pathSelected){
               this.resetState()
               // 点击节点显示相似节点
+              this.isSelected = true
               let dist = this.filesDist.filter(dist => parseInt(dist.id) === d.fileid)[0],
                   fileid = [], val = []
               this.obj = []
@@ -331,15 +335,15 @@ export default {
                 .attr("d", "M15,-5L15,5L5,0")
                 .attr('transform', 'translate('+d.y+','+d.x+') rotate(90)')
             }            
-            if(this.pathSelected){
-              this.svg.append('text')
-                .attr('class','path-text')
-                .text(this.filesList[d.fileid].substr(this.filesList[d.fileid].lastIndexOf('\\')+1))
-                .attr('x', d.y).attr('y', d.x)
-                .attr('dx','0.5em')
-                .attr('dy', '0.4em')
-                .attr('font-size', '12px')
-            }
+            // if(this.pathSelected){
+            //   this.svg.append('text')
+            //     .attr('class','path-text')
+            //     .text(this.filesList[d.fileid].substr(this.filesList[d.fileid].lastIndexOf('\\')+1))
+            //     .attr('x', d.y).attr('y', d.x)
+            //     .attr('dx','0.5em')
+            //     .attr('dy', '0.4em')
+            //     .attr('font-size', '12px')
+            // }
           } 
           else{
             if(this.filesList[d.fileid])
@@ -347,14 +351,21 @@ export default {
                 .attr('class','node-text')
                 .text(this.filesList[d.fileid].substr(this.filesList[d.fileid].lastIndexOf('\\')+1))
                 .attr('x', d.y).attr('y', d.x)
-                .attr('dx','0.4em')
+                .attr("text-anchor", "middle")
+                .attr('dy', -d.r-1)
                 .attr('font-size', '12px')
             else
               this.svg.append('text')
                 .attr('class','node-text')
                 .text(d.fileid.substr(d.fileid.lastIndexOf('\\')+1))
                 .attr('x', d.y).attr('y', d.x)
-                .attr('dx','0.4em')
+                .attr("text-anchor", "middle")
+                .attr('dy', () =>{
+                  if(d.x>this.svgHeight/2)
+                    return d.r+10
+                  else
+                    return -d.r-1
+                })
                 .attr('font-size', '12px')
           }
           d3.event.stopPropagation()
@@ -375,7 +386,7 @@ export default {
       var linearArc = d3.scaleLinear().domain([1, this.maxDepended]).range([0, 1])
       // 插入arcs
       var arc = d3.arc()
-        .outerRadius(this.defaultR+2.5)
+        .outerRadius(this.defaultR+2)
         .innerRadius(this.defaultR-0.5)
         .startAngle(0)
         .endAngle(Math.PI*2)
@@ -659,6 +670,23 @@ export default {
                   return this.colorMap['indirect']
                 else
                   return this.colorMap['direct']
+              })
+              .on('click', d =>{
+                this.$bus.$emit('file-selected', this.filesList[d.fileid])
+                this.$bus.$emit('graph-fileid-selected', d.fileid)
+                this.svg.append('text')
+                  .attr('class','path-text')
+                  .text(this.filesList[d.fileid].substr(this.filesList[d.fileid].lastIndexOf('\\')+1))
+                  .attr('x', d.x).attr('y', d.y)
+                  .attr('dx', ()=>{
+                    if(this.filesList[d.fileid].substr(this.filesList[d.fileid].lastIndexOf('\\')+1) === 'index.js')
+                    return '-4em'
+                    else
+                    return '0.7em'
+                  })
+                  .attr('dy', '0.4em')
+                  .attr('font-size', '12px')
+                d3.event.stopPropagation()
               })
               .on('mouseenter', d=>{
                 if(data.subPaths.length === 1){

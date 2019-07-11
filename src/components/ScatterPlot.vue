@@ -89,28 +89,34 @@ export default {
             // })
 
         this.drawLegend(legendData)
-        this.svg.on('click', d=>{
-            this.circle.attr('stroke', null)
-            this.$bus.$emit('path-selected', [])
-            // this.selectedId = null
-        })
+        // this.svg.on('click', ()=>{
+        //     this.circle.attr('stroke', null)
+        //     this.$bus.$emit('path-selected', [])
+        //     this.selectedId = null
+        // })
         var brush = d3.brush()
             .on("end", brushend)
-            .extent([[margin.left, margin.top], [this.svgWidth-margin.right, this.svgHeight-margin.bottom]])
-        this.svg.append('g').attr('class', 'brush').call(brush)
-
+            .extent([[0, 0], [this.svgWidth, this.svgHeight]])
+        this.svg.append('g')
+            .attr('class', 'brush')
+            .call(brush)
+            .on('click', () =>{
+                this.$bus.$emit('path-selected', [])
+                this.selectedId = null
+                this.circle.attr('stroke', null)
+            })
         function brushend(){
             var s = d3.event.selection
             if(!s) return
             let left = s[0], right = s[1], ids = []
-            vm.circle.attr('stroke', null)
+            // vm.circle.attr('stroke', null)
             vm.circle.each(d => {
                 let curNode = vm.circle.filter(dot => dot.id === d.id)
                 let x = curNode.attr('cx'), y = curNode.attr('cy')
                 if(x > left[0] && x < right[0] && y > left[1] && y < right[1]){
                     curNode.attr('stroke', '#4393c3').attr('stroke-width', 2.5)
                     ids.push(d.id)
-                }     
+                }
             })
             if(ids.length === 1) vm.selectedId = ids[0]
             d3.select('.brush').call(brush.move, null)
@@ -141,6 +147,8 @@ export default {
             }
             else{
                 this.circle.filter(dot => d.indexOf(dot.id) != -1)
+                    .attr('stroke', '#9970ab').attr('stroke-width', 2.5)
+                this.circle.filter(dot => dot.id === this.selectedId)
                     .attr('stroke', '#4393c3').attr('stroke-width', 2.5)
             }
         })
@@ -148,7 +156,7 @@ export default {
 }
 
 </script>
-<style type="text/css" lang="scss" scoped>
+<style type="text/css" lang="scss">
 .scatter-plot{
     height: 100%;
 }
