@@ -296,9 +296,13 @@ export default {
         .attr("fill", this.color)
         .attr('stroke', 'white')
         .on('click', (d) => {
-          if(this.depth === this.maxDepth){
+          if(this.filesList[d.fileid]){
             this.$bus.$emit('file-selected', this.filesList[d.fileid])
             this.$bus.$emit('graph-fileid-selected', d.fileid)
+          }
+          if(this.depth === this.maxDepth){
+            // this.$bus.$emit('file-selected', this.filesList[d.fileid])
+            // this.$bus.$emit('graph-fileid-selected', d.fileid)
             // 无选中节点
             if(!this.isSelected && !this.pathSelected){
               this.resetState()

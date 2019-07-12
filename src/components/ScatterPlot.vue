@@ -109,7 +109,7 @@ export default {
             var s = d3.event.selection
             if(!s) return
             let left = s[0], right = s[1], ids = []
-            // vm.circle.attr('stroke', null)
+            vm.circle.attr('stroke', null)
             vm.circle.each(d => {
                 let curNode = vm.circle.filter(dot => dot.id === d.id)
                 let x = curNode.attr('cx'), y = curNode.attr('cy')

@@ -6,18 +6,18 @@
           <div class='text-div'>Depth</div>
           <div class='slider-div'>
             <el-slider v-model="curDepth" :step="1" 
-              show-stops :min="1" :max="6" size="mini">
+              :min="1" :max="6" size="mini" show-input>
             </el-slider>
-            <el-input v-model="curDepth" size="mini"></el-input>
+            <!-- <el-input v-model="curDepth" size="mini"></el-input> -->
           </div>
         </div>
         <div class='slider-wrapper number'>
           <div class='text-div'>Number</div>
           <div class='slider-div'>
             <el-slider v-model="similarNum" :step="1"
-              :min="1" :max="50" size="mini">
+              :min="1" :max="50" size="mini" show-input>
             </el-slider>
-            <el-input v-model="similarNum" size="mini"></el-input>
+            <!-- <el-input v-model="similarNum" size="mini"></el-input> -->
           </div>
         </div>
         <div class='ratio-wrapper'>
@@ -237,7 +237,29 @@ html {
         .slider-div{
           flex: 4;
           display: flex;
-          margin-right: 50px;
+          margin-right: 30px;
+          .el-slider__input{
+            width: 60px;
+            margin-right: 0;
+          }
+          .el-input-number--small .el-input-number__decrease [class*=el-icon], .el-input-number--small .el-input-number__increase [class*=el-icon]{
+            transform: scale(0.6)
+          }
+          .el-input-number--small .el-input-number__decrease, .el-input-number--small .el-input-number__increase{
+            margin-top: -8px;
+            width: 13px;
+          }
+          .el-slider__runway.show-input{
+            margin-right: 100px;
+          }
+          .el-input-number--small{
+            line-height: 23px;
+          }
+          .el-input--small .el-input__inner{
+            height: 25px;
+            line-height: 25px;
+            padding: 0;
+          }
           .el-slider{
             margin-right: 10px;
             flex: 3;
@@ -260,7 +282,6 @@ html {
             }
           }
           .el-input{
-            flex: 0.5;
             margin-top: -8px;
             margin-right: 5px;
           }
