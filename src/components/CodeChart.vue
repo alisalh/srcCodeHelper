@@ -1,6 +1,6 @@
 <template>
   <div class="code-chart">
-    <div class='title'>{{filename}}</div>
+    <div class='file'>{{filename}}</div>
     <div class='content' v-highlight v-html="content"></div>
   </div>
 </template>
@@ -31,7 +31,7 @@ export default {
   overflow: auto;
   display: flex;
   flex-direction: column;
-  .title{
+  .file{
     flex: 0.4;
     background-color:rgb(245, 245, 245);
     font-size: 16px;

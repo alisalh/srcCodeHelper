@@ -2,11 +2,12 @@
   <div id="app">
     <div class="left-panel">
       <div class='control-panel bl-card-shadow'>
+        <div class='title'>CONTROL PANEL</div>
         <div class='slider-wrapper depth'>
           <div class='text-div'>Depth</div>
           <div class='slider-div'>
             <el-slider v-model="curDepth" :step="1" 
-              :min="1" :max="6" size="mini" show-input>
+              :min="1" :max="3" size="mini" show-input>
             </el-slider>
             <!-- <el-input v-model="curDepth" size="mini"></el-input> -->
           </div>
@@ -15,7 +16,7 @@
           <div class='text-div'>Number</div>
           <div class='slider-div'>
             <el-slider v-model="similarNum" :step="1"
-              :min="1" :max="50" size="mini" show-input>
+              :min="1" :max="maxNum" size="mini" show-input>
             </el-slider>
             <!-- <el-input v-model="similarNum" size="mini"></el-input> -->
           </div>
@@ -28,19 +29,29 @@
           </div>
         </div>
       </div>
-      <dep-hell-wrapper :root="treeRoot" :filesInfo="filesInfo" :maxDepth="maxDepth" :colorMap="colorMap" :libName='libName'>
-      </dep-hell-wrapper>
-      <scatter-plot :colorMap="colorMap" :libName='libName'></scatter-plot>
+      <div class='file-view'>
+        <div class='title'>FILE VIEW</div>
+        <dep-hell-wrapper :root="treeRoot" :filesInfo="filesInfo" :badDependData="badDependData" :maxDepth="maxDepth" :colorMap="colorMap" :libName='libName'>
+        </dep-hell-wrapper>
+      </div>
+      <div class='bad-dependency-view'>
+        <div class='title'>BAD DEPENDENCY VIEW</div>
+        <scatter-plot :colorMap="colorMap" :libName='libName'></scatter-plot>
+      </div>
     </div>
     <div class="center-panel">
       <div class="first-row bl-card-shadow">
+        <div class='title'>DEPENDENCY VIEW</div>
         <dep-path :graphData="graphData" :filesDist="filesDist" :root="treeRoot" :filesList="filesList" :dirs='dirs' :maxDepth="maxDepth" :colorMap='colorMap' :libName='libName'></dep-path>
       </div>
       <div class="second-row bl-card-shadow">
         <parallel-coordinate :filesInfo="filesInfo" class='parallel-coordinate'></parallel-coordinate>
       </div>
     </div>
-    <code-chart class="right-panel bl-card-shadow"></code-chart>
+    <div class='right-panel bl-card-shadow'>
+      <div class='title'>CODE VIEW</div>
+      <code-chart></code-chart>
+    </div>
   </div>
 </template>
 <script>
@@ -75,9 +86,10 @@ export default {
       selectedFileName: 'None',
       treeRoot: null,
       maxDepth: 0,
-      curDepth: 6, //vue: 6, d3: 3
-      libName: 'vue',
+      curDepth: 3, //vue: 6, d3: 3
+      libName: 'd3',
       similarNum: 10,
+      maxNum: 51, //vue: 18, d3: 51
       isSelected: '1',
       filesInfo: null,
       filesDist: null,
@@ -85,6 +97,7 @@ export default {
       graphData: null,
       dependedData: null,
       dependingData: null,
+      badDependData: null,
       dirs: [],
       colorMap: { long: '#377eb8', indirect: '#66c2a5', direct: '#bf812d' }
     }
@@ -152,6 +165,13 @@ export default {
         this.graphData = data
       })
     },
+    getStackData(){
+      this.$axios.get('files/getStackData', {
+        // 暂无参数
+        }).then(({ data }) => {
+          this.badDependData = data
+        })
+    },
     partitionDataAdapter(selectedFile) {
       // 深搜查找节点
       function dfs(root) {
@@ -197,6 +217,7 @@ export default {
     this.getFilesDist()
     this.getGraphData()
     this.getDirs()
+    this.getStackData()
   }
 }
 
@@ -223,7 +244,7 @@ html {
     flex-direction: column;
     .control-panel{
       flex: 1.2;
-      margin-bottom: 3px;
+      margin-bottom: 5px;
       display: flex;
       flex-direction: column;
       font-size: 14px;
@@ -287,6 +308,13 @@ html {
           }
         }
       }
+      .title{
+        flex: 0.51;
+        padding: 6px 0 0 10px;
+      }
+      .depth{
+        padding-top: 15px;
+      }
       .number{
         padding-top: 2px;
         .el-input__inner{
@@ -319,13 +347,32 @@ html {
         flex: 1;
       }
     }
-    .dep-hell-wrapper {
-      flex: 4.5;
-      margin-bottom: 3px;
+    .file-view{
+      flex: 4;
+      margin-bottom: 5px;
+      display: flex;
+      flex-direction: column;
+      .title{
+        flex: 0.4;
+        padding: 6px 0 0 10px;
+      }
+      .dep-hell-wrapper {
+        flex: 8;
+      }
     }
-    .scatter-plot{
-      flex: 2.2;
+    .bad-dependency-view{
+      flex: 2.5;
+      display: flex;
+      flex-direction: column;
+      .title{
+        flex: 0.7;
+        padding: 6px 0 0 10px;
+      }
+      .scatter-plot{
+        flex: 8
+      }
     }
+    
   }
   .center-panel {
     flex: 3;
@@ -335,6 +382,15 @@ html {
     .first-row {
       flex: 3;
       margin-bottom: 3px;
+      display: flex;
+      flex-direction: column;
+      .title{
+        flex: 0.5;
+        padding: 6px 0 0 10px;
+      }
+      .dep-path{
+        flex: 14;
+      } 
     }
     .second-row {
       flex: 1.19;
@@ -342,6 +398,16 @@ html {
   }
   .right-panel{
     flex: 1.2;
+    display: flex;
+    flex-direction: column;
+    overflow-x: auto;
+    .title{
+      flex:0.5;
+      padding: 6px 0 0 10px;
+    }
+    .code-chart{
+      flex: 24;
+    }
   }
 }
 
