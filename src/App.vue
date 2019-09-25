@@ -42,9 +42,11 @@
     <div class="center-panel">
       <div class="first-row bl-card-shadow">
         <div class='title'>DEPENDENCY VIEW</div>
-        <dep-path :graphData="graphData" :filesDist="filesDist" :root="treeRoot" :filesList="filesList" :dirs='dirs' :maxDepth="maxDepth" :colorMap='colorMap' :libName='libName'></dep-path>
+        <dep-path :graphData="graphData" :filesDist="filesDist" :root="treeRoot" :filesList="filesList" :dirs='dirs' 
+          :maxDepth="maxDepth" :colorMap='colorMap' :libName='libName'></dep-path>
       </div>
       <div class="second-row bl-card-shadow">
+        <div class='title'>PARALLEL COORDINATE</div>
         <parallel-coordinate :filesInfo="filesInfo" class='parallel-coordinate'></parallel-coordinate>
       </div>
     </div>
@@ -394,6 +396,15 @@ html {
     }
     .second-row {
       flex: 1.19;
+      display: flex;
+      flex-direction: column;
+      .title{
+        flex: 1;
+        padding: 6px 0 0 10px;
+      }
+      .parallel-coordinate{
+        flex: 10;
+      }
     } 
   }
   .right-panel{

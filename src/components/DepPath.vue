@@ -12,7 +12,7 @@ export default {
       links: null,
       defaultR: 4,
       depData: null,
-      color: '#d9d9d9',
+      color: '#bababa',
       svgWidth: 0,
       svgHeight: 0,
       isSelected: false,
@@ -33,99 +33,6 @@ export default {
   },
   props:['graphData', 'filesDist', 'root', 'filesList', 'dirs', 'maxDepth', 'colorMap', 'libName'],
   methods: {
-    drawLinkMark(){
-      let r = 3, color = 'grey'
-      let markG = this.svg.append('g')
-        .attr('class', 'link-mark')
-        .attr('transform', 'translate(40,'+(this.svgHeight-40)+')')
-      markG.append('circle')
-        .attr('r', r)
-        .style('fill', color)
-      markG.append('circle')
-        .attr('r', r)
-        .attr('cx', '3em')
-        .style('fill', color)
-      markG.append('circle')
-        .attr('r', r)
-        .attr('cy', '1.2em')
-        .style('fill', color)
-      markG.append('circle')
-        .attr('r', r)
-        .attr('cy', '1.2em')
-        .attr('cx', '3em')
-        .style('fill', color)
-      // 绘制箭头
-      markG
-        .append("defs")
-        .append("marker")
-        .attr("id", "link-mark-right-arrow")
-        .attr("viewBox", "0 -5 10 10")
-        .attr("refX", 0)
-        .attr('refY', 0)
-        .attr("markerWidth", 5.5)
-        .attr("markerHeight", 5.5)
-        .attr('orient', 'auto')
-        .append("path")
-        .attr("d", "M0,-5L10,0L0,5")
-      markG
-        .append("defs")
-        .append("marker")
-        .attr("id", "link-mark-left-arrow")
-        .attr("viewBox", "0 -5 10 10")
-        .attr("refX", 0)
-        .attr('refY', 0)
-        .attr("markerWidth", 5.5)
-        .attr("markerHeight", 5.5)
-        .attr('orient', 180)
-        .append("path")
-        .attr("d", "M0,-5L10,0L0,5")
-      // 直线颜色渐变
-      let linearGradient = markG.append('defs')
-        .append('linearGradient')
-        .attr('id', 'link-mark-gradient')
-        .attr('gradientUnits','userSpaceOnUse')
-        .attr('x1', 51)
-        .attr('y1', 0)
-        .attr('x2', 4)
-        .attr('y2', 0)
-      linearGradient.append('stop')
-        .attr('offset', '0%')
-        .attr('stop-color', '#d9d9d9')
-      linearGradient.append('stop')
-        .attr('offset', '33%')
-        .attr('stop-color', '#d9d9d9')
-      linearGradient.append('stop')
-        .attr('offset', '66%')
-        .attr('stop-color', '#525252')
-      linearGradient.append('stop')
-        .attr('offset', '100%')
-      markG.append('path')
-        .attr("d", 'M4,0 L51,0')
-        .style('stroke', 'url(#link-mark-gradient)')
-        .attr("marker-end","url(#link-mark-right-arrow)")
-      markG.append('path')
-        .attr("d", 'M8,24 L51,24')
-        .style('stroke', '#525252')
-        .attr("marker-end","url(#link-mark-right-arrow)")
-        .attr('marker-start',"url(#link-mark-left-arrow)")
-      // 添加文字
-      markG.append('text')
-        .text('M').style('font-size', '11px')
-        .attr('dy', '0.4em')
-        .attr('dx', '-1.2em')
-      markG.append('text')
-        .text('M').style('font-size', '11px')
-        .attr('dy', '2.5em')
-        .attr('dx', '-1.2em')
-      markG.append('text')
-        .text('N').style('font-size', '11px')
-        .attr('dy', '0.4em')
-        .attr('dx', '5.9em')
-      markG.append('text')
-        .text('N').style('font-size', '11px')
-        .attr('dy', '2.5em')
-        .attr('dx', '5.9em')
-    },
     updateGraph(depth){
       let newGraphData = {nodes:[], links:[]}
       // 保留graphData的完整数据, 用于还原grah
@@ -142,7 +49,7 @@ export default {
         })
       })
       // 查找当前depth的文件夹节点
-      let children= d3.partition()(this.root).descendants().slice(1)
+      let children= this.root.descendants().slice(1)
       let dirNodes = children.filter(node => node.depth === depth && node.data.type ==='dir')
       let dirSize = {}
       var compute = d3.interpolate(4, 15) 
@@ -170,12 +77,12 @@ export default {
         })
         x = x/fileids.length
         y = y/fileids.length
-
+        let r = node.leaves().length
         // 保留在当前层的文件节点
         newGraphData.nodes = newGraphData.nodes.filter(d => fileids.indexOf(d.fileid) === -1)
         //加入当前文件夹节点
-        newGraphData.nodes.push({fileid: node.data.name, size: fileids.length, depended: depended, 
-                            depending: depending, r: compute(linear(Math.sqrt(fileids.length)))+2, x: x, y: y})
+        newGraphData.nodes.push({type: 'dir', fileid: node.data.name, size: fileids.length, depended: depended, 
+                            depending: depending, r: compute(linear(Math.sqrt(r)))*3, x: x, y: y})
         // 更新link
         let links = new Set()
         newGraphData.links.forEach(link =>{
@@ -220,7 +127,6 @@ export default {
     },
     draw(data) {
       d3.select('.dep-path').selectAll('svg *').remove()
-      this.drawLinkMark()
       let vm = this
       var simulation
       if(this.libName === 'vue'){
@@ -228,19 +134,23 @@ export default {
           .force("link", d3.forceLink().id(function(d) { return d.fileid; }))
           .force("charge", d3.forceManyBody().strength(-200).distanceMin(50).distanceMax(130))
           .force("center", d3.forceCenter(this.svgHeight  / 2, this.svgWidth/ 2))
-          .force('collision', d3.forceCollide().radius(function(d) { return d.r*2 + 10 }))
-          .stop()
+          .force('collision', d3.forceCollide().radius(function(d) { return d.r + 10 }))
+        if(this.depth < 4)
+          simulation.force('collision', d3.forceCollide().radius(function(d) { return d.r*1.5 + 10}))
       }
      if(this.libName === 'd3'){
         simulation = d3.forceSimulation()
           .force("link", d3.forceLink().id(function(d) { return d.fileid }))
-          .force("charge", d3.forceManyBody().strength(-150).distanceMin(30).distanceMax(78))
-          .force("center", d3.forceCenter(this.svgHeight / 2 - 5, this.svgWidth / 2))
-          .force('collision', d3.forceCollide().radius(function(d) { return d.r*2 + 5}))
+          .force("charge", d3.forceManyBody().strength(-120).distanceMin(30).distanceMax(70))
+          .force("center", d3.forceCenter(this.svgHeight / 2, this.svgWidth / 2))
+          .force('collision', d3.forceCollide().radius(function(d) { return d.r + 5}))
+        if(this.depth === 1)
+          simulation.force('collision', d3.forceCollide().radius(function(d) { return d.r*1.5 + 5}))
       }
       simulation
         .nodes(data.nodes)
-        .on("tick", ticked);
+        .on("tick", ticked)
+        // .on("end", this.drawArc)
       simulation.force("link")
         .links(data.links)
 
@@ -249,43 +159,9 @@ export default {
         .selectAll("line")
         .data(data.links)
         .enter().append("line")
-        .style("stroke", (d, i) =>{
-          if(this.directData.indexOf(d.source.fileid+'|'+d.target.fileid) != -1 && 
-            this.directData.indexOf(d.target.fileid+'|'+d.source.fileid) != -1){
-            return '#525252'
-          }
-          else{
-            let linearGradient = this.svg.append('defs')
-              .append('linearGradient')
-              .attr('id', 'link-gradient'+i)
-              .attr('gradientUnits','userSpaceOnUse')
-              .attr('x1', boundX(d.source.y))
-              .attr('y1', boundY(d.source.x))
-              .attr('x2', boundX(d.target.y))
-              .attr('y2', boundY(d.target.x))
-            linearGradient.append('stop')
-              .attr('offset', '0%')
-              .attr('stop-color', '#d9d9d9')
-            linearGradient.append('stop')
-              .attr('offset', '33%')
-              .attr('stop-color', '#d9d9d9')
-            linearGradient.append('stop')
-              .attr('offset', '66%')
-              .attr('stop-color', '#525252')
-            linearGradient.append('stop')
-              .attr('offset', '100%')
-              .attr('stop-color', '#525252')
-            return 'url(#link-gradient'+i+')'
-          }
-        })
-        .attr("stroke-width", d => {
-          return 0.3
-        })
+        .attr('stroke', this.color)
+        .attr("stroke-width", 0.4)
      
-      // 颜色色卡
-      var a = d3.rgb(165,0,38), b = d3.rgb(253,174,97)
-      var computeNode = d3.interpolate(a, b)
-      function up(x, y) {return x.val -y.val}
       this.nodes = this.svg.append("g")
         .attr("class", "nodes")
         .selectAll("circle")
@@ -293,138 +169,52 @@ export default {
         .enter().append("circle")
         .attr('id', d => 'circle'+d.index)
         .attr("r", d => d.r)
-        .attr("fill", this.color)
-        .attr('stroke', 'white')
-        .on('click', (d) => {
-          if(this.filesList[d.fileid]){
-            this.$bus.$emit('file-selected', this.filesList[d.fileid])
-            this.$bus.$emit('graph-fileid-selected', d.fileid)
-          }
-          if(this.depth === this.maxDepth){
-            // this.$bus.$emit('file-selected', this.filesList[d.fileid])
-            // this.$bus.$emit('graph-fileid-selected', d.fileid)
-            // 无选中节点
-            if(!this.isSelected && !this.pathSelected){
-              this.resetState()
-              // 点击节点显示相似节点
-              this.isSelected = true
-              let dist = this.filesDist.filter(dist => parseInt(dist.id) === d.fileid)[0],
-                  fileid = [], val = []
-              this.obj = []
-              for(var key in dist)
-                this.obj.push({key: key, val: dist[key]})
-              this.obj.sort(up)
-              for(let i=0; i<this.num+1; i++){
-                fileid.push(parseInt(this.obj[i].key))
-                val.push(parseFloat(this.obj[i].val))
-              }
-              var linearNode = d3.scaleLinear().domain([Math.min(...val), Math.max(...val)]).range([0, 1])
-              fileid.forEach((id, i) =>{
-                this.nodes.filter(node => node.fileid === id)
-                  .attr('fill', computeNode(linearNode(val[i])))
-              })
-            }
-            if(!this.pathSelected){
-              d3.selectAll('.select-marker').remove()
-              // 绘制箭头
-              this.svg.append('g')
-                .attr('class', 'select-marker')
-                .attr("viewBox", "5 -5 20 20")
-                .attr("refX", 0)
-                .attr('refY', 0)
-                .attr("markerWidth", 15)
-                .attr("markerHeight", 15)
-                .attr('orient', 'auto')
-                .append("path")
-                .attr("d", "M15,-5L15,5L5,0")
-                .attr('transform', 'translate('+d.y+','+d.x+') rotate(90)')
-            }            
-            // if(this.pathSelected){
-            //   this.svg.append('text')
-            //     .attr('class','path-text')
-            //     .text(this.filesList[d.fileid].substr(this.filesList[d.fileid].lastIndexOf('\\')+1))
-            //     .attr('x', d.y).attr('y', d.x)
-            //     .attr('dx','0.5em')
-            //     .attr('dy', '0.4em')
-            //     .attr('font-size', '12px')
-            // }
-          } 
-          else{
-            if(this.filesList[d.fileid])
-              this.svg.append('text')
-                .attr('class','node-text')
-                .text(this.filesList[d.fileid].substr(this.filesList[d.fileid].lastIndexOf('\\')+1))
-                .attr('x', d.y).attr('y', d.x)
-                .attr("text-anchor", "middle")
-                .attr('dy', -d.r-1)
-                .attr('font-size', '12px')
-            else
-              this.svg.append('text')
-                .attr('class','node-text')
-                .text(d.fileid.substr(d.fileid.lastIndexOf('\\')+1))
-                .attr('x', d.y).attr('y', d.x)
-                .attr("text-anchor", "middle")
-                .attr('dy', () =>{
-                  if(d.x>this.svgHeight/2)
-                    return d.r+10
-                  else
-                    return -d.r-1
-                })
-                .attr('font-size', '12px')
-          }
+        .attr("fill", d =>{
+          if(d.type === 'dir') return 'white'
+          else return this.color
+        })
+        .attr('stroke', d=>{
+          if(d.type === 'dir') return this.color
+          else return 'white'
+        })
+        .attr('stroke-width', d=>{
+          if(d.type === 'dir') return 3
+          else return 1
+        })
+        .on('click', d=>{
           d3.event.stopPropagation()
-        })
-        .on('mouseover', d => {
-          if(!this.pathSelected)
-            this.links.filter(link => link.source.fileid === d.fileid || link.target.fileid === d.fileid)
-              .attr('stroke-width', 2)
-        })
-        .on('mouseout', d => {
-          if(!this.pathSelected)
-            this.links.attr('stroke-width', 0.3)
+          this.nodes.attr('opacity', 0.2)
+          this.links.attr('opacity', 0.2)
+          this.svg.select('.arcG').selectAll('.dirNode').attr('opacity', 0.2)
+          //当前节点颜色
+          let curNode = this.nodes.filter(node =>node.fileid === d.fileid)
+          if(d.type === 'dir') {
+            curNode.attr('stroke', '#d6604d').attr('opacity', 1)
+            this.svg.select('#dirNode'+d.index).attr('opacity', 1)
+          }
+          else curNode.attr('fill', '#d6604d').attr('opacity', 1)
+          // 引用连线和被引用连线
+          let sourceLink = this.links.filter(link => link.source.fileid === d.fileid),
+            targetLink = this.links.filter(link => link.target.fileid === d.fileid)
+          sourceLink.attr('stroke', '#d6604d').attr('stroke-width', 2).attr('opacity', 1)
+          targetLink.attr('stroke', '#4393c3').attr('stroke-width', 2).attr('opacity', 1)
+          // 引用节点和被引用节点
+          let targetNodeID = data.links.filter(link => link.source.fileid === d.fileid).map(link => link.target.fileid),
+            sourceNodeID = data.links.filter(link => link.target.fileid === d.fileid).map(link => link.source.fileid)
+          this.nodes.filter(node => targetNodeID.indexOf(node.fileid) != -1 && node.type === 'dir')
+            .attr('stroke', '#d6604d').attr('opacity', 1).each(node =>{
+              this.svg.select('#dirNode'+node.index).attr('opacity', 1)
+            })
+          this.nodes.filter(node => targetNodeID.indexOf(node.fileid) != -1 && node.type != 'dir')
+           .attr('fill', '#d6604d').attr('opacity', 1)
+          this.nodes.filter(node => sourceNodeID.indexOf(node.fileid) != -1 && node.type === 'dir')
+            .attr('stroke', '#4393c3').attr('opacity', 1).each(node =>{
+              this.svg.select('#dirNode'+node.index).attr('opacity', 1)
+            })
+          this.nodes.filter(node => sourceNodeID.indexOf(node.fileid) != -1 && node.type != 'dir')
+           .attr('fill', '#4393c3').attr('opacity', 1)
         })
      
-      // 颜色色卡
-      var c = d3.rgb(158,202,225), d = d3.rgb(8,81,156)
-      var computeArc = d3.interpolate(c, d)
-      var linearArc = d3.scaleLinear().domain([1, this.maxDepended]).range([0, 1])
-      // 插入arcs
-      var arc = d3.arc()
-        .outerRadius(this.defaultR+2)
-        .innerRadius(this.defaultR-0.5)
-        .startAngle(0)
-        .endAngle(Math.PI*2)
-      this.arcs = this.svg.append('g')
-        .attr("class", "arcs")
-        .selectAll(".arcs")
-        .data(data.nodes.filter(d=>!d.size))
-        .enter().append("path")
-        .attr('d', arc)
-        .attr('fill', d => {
-          if(d.depended === 0)
-            return '#bdbdbd'
-          return computeArc(linearArc(d.depended))
-        })
-        .attr('transform', d => 'translate('+ d.y + ',' + d.x +')')
-      
-      this.svg.on('click', ()=>{
-        if(this.depth === this.maxDepth){
-          this.resetState()
-          this.$bus.$emit('graph-fileid-selected', null)
-        }
-        this.svg.selectAll('.node-text').remove()
-      })
-      this.nodes.append("title")
-        .text((d) => {
-          if(this.filesList[d.fileid]){
-            let name = this.filesList[d.fileid]
-            return name.substr(name.lastIndexOf('\\')+1)
-          }
-          else{
-            let name = d.fileid
-            return name.substr(name.lastIndexOf('\\')+1)
-          }
-        })
       function boundX(d){
         if(d < 0)
           d = 10
@@ -439,13 +229,15 @@ export default {
           d = vm.height - 10
         return d
       }
-     
       // 停止动画
       let n = Math.ceil(Math.log(simulation.alphaMin()) / Math.log(1 - simulation.alphaDecay()))
       for(let i=0; i < n; ++i) {
         simulation.tick()
       }
       simulation.restart()
+      this.drawArc()
+      this.svg.on('click', this.resetState)
+     
       function ticked() {
         vm.nodes
           .attr("cx", function(d) { return boundX(d.y) })
@@ -455,64 +247,105 @@ export default {
           .attr("y1", function(d) { return boundY(d.source.x) })
           .attr("x2", function(d) { return boundX(d.target.y) })
           .attr("y2", function(d) { return boundY(d.target.x) })
-          .style("stroke", (d, i) =>{
-            if(vm.directData.indexOf(d.source.fileid+'|'+d.target.fileid) != -1 && 
-              vm.directData.indexOf(d.target.fileid+'|'+d.source.fileid) != -1){
-              return '#525252'
-            }
-            else{
-              vm.svg.select('#link-gradient'+i)
-                .attr('x1', boundX(d.source.y))
-                .attr('y1', boundY(d.source.x))
-                .attr('x2', boundX(d.target.y))
-                .attr('y2', boundY(d.target.x))
-              return 'url(#link-gradient'+i+')'
-            }
-          })
-        vm.arcs
-          .attr('transform', d => 'translate('+ d.y + ',' + d.x +')')
       }
+    },
+    drawArc(){
+      this.svg.append('g').attr('class', 'arcG')
+      this.nodes.filter(node => node.type === 'dir')
+        .each(node =>{
+          let curNode = this.root.descendants().slice(1).filter(d => d.data.name === node.fileid)[0]
+          let children = curNode.children
+          let cx = node.x, cy = node.y, r = node.r
+          let arc = d3.arc().innerRadius(r-8).outerRadius(r-3)
+          let per = 2*Math.PI/curNode.leaves().length
+          let arcG = this.svg.select('.arcG').append('g').attr('class', 'dirNode').attr('id', 'dirNode'+node.index).attr('transform', 'translate(' + cy + ',' + cx + ')')
+          let startAngle = 0, endAngle = 0, midAngle = new Array(children.length)
+          let matrix = this.getMatrix(children)
+          children.forEach((d, i) =>{
+            if(d.children)
+              endAngle = startAngle + d.leaves().length*per
+            else
+              endAngle = startAngle + per
+            arc.startAngle(startAngle).endAngle(endAngle)
+            arcG.append('path').attr('class', 'arc').attr('id', 'arc'+i).attr('d', arc)
+              .style('fill', function(){if(d.children) return '#fed9a6'; else return '#eeebe6'}).attr('stroke', 'white')
+            midAngle[i] = (startAngle+endAngle)/2 - Math.PI/2
+            startAngle = endAngle
+          })
+          for(let i=0; i<matrix.length; i++){
+            let start = [Math.cos(midAngle[i])*(r-8), Math.sin(midAngle[i])*(r-8)]
+            for(let j=0; j<matrix[i].length; j++){
+              if(i === j) continue
+              if(matrix[i][j] != 0){
+                let end = [Math.cos(midAngle[j])*(r-8), Math.sin(midAngle[j])*(r-8)]
+                arcG.append('path').attr('d', 'M'+start+'Q'+0+','+ 0+',' +end)
+                  .attr('fill', 'none').attr('stroke', '#74adde')
+              }
+            }
+          }
+        })
     },
     resetState(){
-      this.nodes.attr('fill', this.color)
-        .attr('r', this.defaultR)
+      this.nodes.attr("fill", d =>{ if(d.type === 'dir') return 'white'; else return this.color; })
+        .attr('stroke', d=>{ if(d.type === 'dir') return this.color; else return 'white'; })
+        .attr('stroke-width', d=>{ if(d.type === 'dir') return 3; else return 1; })
         .attr('opacity', 1)
-      this.svg.select('.path-arrow').remove()
-      this.svg.select('.badNodes').remove()
-      this.svg.select('.badLinks').remove()
-      this.links.attr('opacity', 1).attr('stroke-width', 0.3)
-      this.isSelected = false
-      this.pathSelected = false
-      this.obj = null
-      this.arcs.attr('opacity', 1)
-      d3.selectAll('.path-text').remove()
-      d3.selectAll('.select-marker').remove()
-      d3.selectAll('.bad-link-gradient').remove()
-      
+      this.links.attr('stroke', this.color).attr("stroke-width", 0.4).attr('opacity', 1)
+      this.svg.select('.arcG').selectAll('.dirNode').attr('opacity', 1)
     },
+    getMatrix(children){
+      let matrix = new Array(children.length)
+      for(let i=0; i<children.length; i++){
+        matrix[i] = new Array(children.length)
+        let sourceLink
+        if(children[i].data.type === 'dir'){
+          let files = children[i].leaves().map(d => d.data.id)
+          sourceLink = this.graphData.links.filter(link => files.indexOf(link.source.fileid) != -1)
+        }
+        else{
+          sourceLink = this.graphData.links.filter(link => link.source.fileid === children[i].data.id)
+        }
+        for(let j=0; j<children.length; j++){
+          if(i === j){
+            matrix[i][j] = 0
+            continue
+          }
+          let targetLink
+          if(children[j].data.type === 'dir'){
+            let files = children[j].leaves().map(d => d.data.id)
+            targetLink = sourceLink.filter(link => files.indexOf(link.target.fileid) != -1)
+          }
+          else{
+            targetLink = sourceLink.filter(link => link.target.fileid === children[j].data.id)
+          }
+          matrix[i][j] = targetLink.length
+        }
+      }
+      return matrix
+    }
   },
   watch: {
-    dependType(val){
-      // 颜色色卡
-      var c = d3.rgb(158,202,225), d = d3.rgb(8,81,156)
-      var computeArc = d3.interpolate(c, d)
-      if(val === '1'){
-        let linearArc = d3.scaleLinear().domain([1, this.maxDepended]).range([0, 1])
-        this.arcs.attr('fill', d =>{
-          if(d.depended === 0)
-            return '#bdbdbd'
-          return computeArc(linearArc(d.depended))
-        }) 
-      }
-      if(val === '2'){
-        let linearArc = d3.scaleLinear().domain([1, this.maxDepending]).range([0, 1])
-        this.arcs.attr('fill', d => {
-          if(d.depending === 0)
-            return '#bdbdbd'
-          return computeArc(linearArc(d.depending))
-        })
-      }
-    }
+    // dependType(val){
+    //   // 颜色色卡
+    //   var c = d3.rgb(158,202,225), d = d3.rgb(8,81,156)
+    //   var computeArc = d3.interpolate(c, d)
+    //   if(val === '1'){
+    //     let linearArc = d3.scaleLinear().domain([1, this.maxDepended]).range([0, 1])
+    //     this.arcs.attr('fill', d =>{
+    //       if(d.depended === 0)
+    //         return '#bdbdbd'
+    //       return computeArc(linearArc(d.depended))
+    //     }) 
+    //   }
+    //   if(val === '2'){
+    //     let linearArc = d3.scaleLinear().domain([1, this.maxDepending]).range([0, 1])
+    //     this.arcs.attr('fill', d => {
+    //       if(d.depending === 0)
+    //         return '#bdbdbd'
+    //       return computeArc(linearArc(d.depending))
+    //     })
+    //   }
+    // }
   },
   created() {
     const requiredData = ['graphData', 'filesDist', 'root', 'filesList','dirs', 'maxDepth']
