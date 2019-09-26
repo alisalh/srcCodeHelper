@@ -12,7 +12,11 @@ export default {
       links: null,
       defaultR: 4,
       depData: null,
-      color: '#bababa',
+      nodeColor: '#bababa',
+      linkColor: '#bababa',
+      sourceColor: '#fb8072',
+      targetColor: '#bc80bd',
+      mergeColor: '#dc8098',
       svgWidth: 0,
       svgHeight: 0,
       isSelected: false,
@@ -135,8 +139,10 @@ export default {
           .force("charge", d3.forceManyBody().strength(-200).distanceMin(50).distanceMax(130))
           .force("center", d3.forceCenter(this.svgHeight  / 2, this.svgWidth/ 2))
           .force('collision', d3.forceCollide().radius(function(d) { return d.r + 10 }))
-        if(this.depth < 4)
+        if(this.depth === 3)
           simulation.force('collision', d3.forceCollide().radius(function(d) { return d.r*1.5 + 10}))
+        if(this.depth <= 2)
+          simulation.force('collision', d3.forceCollide().radius(function(d) { return d.r*1.5 + 15}))
       }
      if(this.libName === 'd3'){
         simulation = d3.forceSimulation()
@@ -159,7 +165,13 @@ export default {
         .selectAll("line")
         .data(data.links)
         .enter().append("line")
-        .attr('stroke', this.color)
+        .attr('stroke', d=>{
+          if(this.directData.indexOf(d.source.fileid+'|'+d.target.fileid) != -1 && 
+            this.directData.indexOf(d.target.fileid+'|'+d.source.fileid) != -1){
+            return '#1a1a1a'
+          }
+          return this.linkColor
+        })
         .attr("stroke-width", 0.4)
      
       this.nodes = this.svg.append("g")
@@ -171,10 +183,10 @@ export default {
         .attr("r", d => d.r)
         .attr("fill", d =>{
           if(d.type === 'dir') return 'white'
-          else return this.color
+          else return this.nodeColor
         })
         .attr('stroke', d=>{
-          if(d.type === 'dir') return this.color
+          if(d.type === 'dir') return this.nodeColor
           else return 'white'
         })
         .attr('stroke-width', d=>{
@@ -183,36 +195,50 @@ export default {
         })
         .on('click', d=>{
           d3.event.stopPropagation()
-          this.nodes.attr('opacity', 0.2)
-          this.links.attr('opacity', 0.2)
-          this.svg.select('.arcG').selectAll('.dirNode').attr('opacity', 0.2)
+          this.resetState()
+          this.nodes.attr('opacity', 0.1)
+          this.links.attr('opacity', 0.1)
+          this.svg.select('.arcG').selectAll('.dirNode').attr('opacity', 0.1)
           //当前节点颜色
           let curNode = this.nodes.filter(node =>node.fileid === d.fileid)
           if(d.type === 'dir') {
-            curNode.attr('stroke', '#d6604d').attr('opacity', 1)
+            curNode.attr('stroke', '#8dd3c7').attr('opacity', 1)
             this.svg.select('#dirNode'+d.index).attr('opacity', 1)
           }
-          else curNode.attr('fill', '#d6604d').attr('opacity', 1)
-          // 引用连线和被引用连线
+          else curNode.attr('fill', '#8dd3c7').attr('opacity', 1)
+          // 引用连线和被引用连线(source是引用)
           let sourceLink = this.links.filter(link => link.source.fileid === d.fileid),
             targetLink = this.links.filter(link => link.target.fileid === d.fileid)
-          sourceLink.attr('stroke', '#d6604d').attr('stroke-width', 2).attr('opacity', 1)
-          targetLink.attr('stroke', '#4393c3').attr('stroke-width', 2).attr('opacity', 1)
+          sourceLink.attr('stroke', d=>{
+            if(this.directData.indexOf(d.source.fileid+'|'+d.target.fileid) != -1 && 
+              this.directData.indexOf(d.target.fileid+'|'+d.source.fileid) != -1)
+                return this.getGredientLink(d)
+            return this.sourceColor})
+            .attr('stroke-width', 2).attr('opacity', 1)
+          targetLink.attr('stroke', d=>{
+            if(this.directData.indexOf(d.source.fileid+'|'+d.target.fileid) != -1 && 
+              this.directData.indexOf(d.target.fileid+'|'+d.source.fileid) != -1)
+                return this.getGredientLink(d)
+            return this.targetColor}).attr('stroke-width', 2).attr('opacity', 1)
           // 引用节点和被引用节点
           let targetNodeID = data.links.filter(link => link.source.fileid === d.fileid).map(link => link.target.fileid),
             sourceNodeID = data.links.filter(link => link.target.fileid === d.fileid).map(link => link.source.fileid)
-          this.nodes.filter(node => targetNodeID.indexOf(node.fileid) != -1 && node.type === 'dir')
-            .attr('stroke', '#d6604d').attr('opacity', 1).each(node =>{
-              this.svg.select('#dirNode'+node.index).attr('opacity', 1)
-            })
-          this.nodes.filter(node => targetNodeID.indexOf(node.fileid) != -1 && node.type != 'dir')
-           .attr('fill', '#d6604d').attr('opacity', 1)
-          this.nodes.filter(node => sourceNodeID.indexOf(node.fileid) != -1 && node.type === 'dir')
-            .attr('stroke', '#4393c3').attr('opacity', 1).each(node =>{
-              this.svg.select('#dirNode'+node.index).attr('opacity', 1)
-            })
-          this.nodes.filter(node => sourceNodeID.indexOf(node.fileid) != -1 && node.type != 'dir')
-           .attr('fill', '#4393c3').attr('opacity', 1)
+          let directNodeID = targetNodeID.filter(id => sourceNodeID.indexOf(id) != -1)
+          this.nodes.filter(node => targetNodeID.indexOf(node.fileid) != -1 && directNodeID.indexOf(node.fileid) === -1)
+            .attr('stroke', d =>{ if(d.type === 'dir') return this.sourceColor; else return 'white' })
+            .attr('fill', d =>{ if(d.type === 'dir') return 'white'; else return this.sourceColor})
+            .attr('opacity', 1)
+            .each(d =>{ if(d.type === 'dir') this.svg.select('#dirNode'+d.index).attr('opacity', 1) })
+          this.nodes.filter(node => sourceNodeID.indexOf(node.fileid) != -1 && directNodeID.indexOf(node.fileid) === -1)
+            .attr('stroke', d =>{ if(d.type === 'dir') return this.targetColor; else return 'white' })
+            .attr('fill', d =>{ if(d.type === 'dir') return 'white'; else return this.targetColor })
+            .attr('opacity', 1)
+            .each(d =>{ if(d.type === 'dir') this.svg.select('#dirNode'+d.index).attr('opacity', 1) })
+          this.nodes.filter(node => directNodeID.indexOf(node.fileid) != -1)
+            .attr('stroke', d =>{ if(d.type === 'dir') return this.getGredientNode(d); else return 'white' })
+            .attr('fill', d =>{ if(d.type === 'dir') return 'white'; else return this.getGredientNode(d)})
+            .attr('opacity', 1)
+            .each(d =>{ if(d.type === 'dir') this.svg.select('#dirNode'+d.index).attr('opacity', 1) })
         })
      
       function boundX(d){
@@ -249,6 +275,52 @@ export default {
           .attr("y2", function(d) { return boundY(d.target.x) })
       }
     },
+    getGredientLink(d){
+      let linearGradient = this.svg.append('defs')
+        .append('linearGradient')
+        .attr('id', 'link-gradient'+d.index)
+        .attr('gradientUnits','userSpaceOnUse')
+        .attr('x1', d.source.y)
+        .attr('y1', d.source.x)
+        .attr('x2', d.target.y)
+        .attr('y2', d.target.x)
+        linearGradient.append('stop')
+          .attr('offset', '0%')
+          .attr('stop-color', this.sourceColor)
+        linearGradient.append('stop')
+          .attr('offset', '50%')
+          .attr('stop-color', this.sourceColor)
+        linearGradient.append('stop')
+          .attr('offset', '51%')
+          .attr('stop-color', this.targetColor)
+        linearGradient.append('stop')
+          .attr('offset', '100%')
+          .attr('stop-color', this.targetColor)
+        return 'url(#link-gradient'+d.index+')'
+    },
+    getGredientNode(d){                  
+      let linearGradient = this.svg.append('defs')
+        .append('linearGradient')
+        .attr('id', 'node-gradient'+d.index)
+        // .attr('gradientUnits','userSpaceOnUse')
+        .attr('x1', '0%')
+        .attr('y1', '0%')
+        .attr('x2', '100%')
+        .attr('y2', '100%')
+        linearGradient.append('stop')
+          .attr('offset', '0%')
+          .attr('stop-color', this.sourceColor)
+        linearGradient.append('stop')
+          .attr('offset', '50%')
+          .attr('stop-color', this.sourceColor)
+        linearGradient.append('stop')
+          .attr('offset', '51%')
+          .attr('stop-color', this.targetColor)
+        linearGradient.append('stop')
+          .attr('offset', '100%')
+          .attr('stop-color', this.targetColor)
+        return 'url(#node-gradient'+d.index+')'
+    },
     drawArc(){
       this.svg.append('g').attr('class', 'arcG')
       this.nodes.filter(node => node.type === 'dir')
@@ -279,19 +351,26 @@ export default {
               if(matrix[i][j] != 0){
                 let end = [Math.cos(midAngle[j])*(r-8), Math.sin(midAngle[j])*(r-8)]
                 arcG.append('path').attr('d', 'M'+start+'Q'+0+','+ 0+',' +end)
-                  .attr('fill', 'none').attr('stroke', '#74adde')
+                  .attr('fill', 'none').attr('stroke', '#74adde').attr('stroke-width', 0.7)
               }
             }
           }
         })
     },
     resetState(){
-      this.nodes.attr("fill", d =>{ if(d.type === 'dir') return 'white'; else return this.color; })
-        .attr('stroke', d=>{ if(d.type === 'dir') return this.color; else return 'white'; })
+      this.nodes.attr("fill", d =>{ if(d.type === 'dir') return 'white'; else return this.nodeColor; })
+        .attr('stroke', d=>{ if(d.type === 'dir') return this.nodeColor; else return 'white'; })
         .attr('stroke-width', d=>{ if(d.type === 'dir') return 3; else return 1; })
         .attr('opacity', 1)
-      this.links.attr('stroke', this.color).attr("stroke-width", 0.4).attr('opacity', 1)
+      this.links.attr('stroke', d=>{
+         if(this.directData.indexOf(d.source.fileid+'|'+d.target.fileid) != -1 && 
+            this.directData.indexOf(d.target.fileid+'|'+d.source.fileid) != -1){
+            return '#1a1a1a'
+          }
+          return this.linkColor
+      }).attr("stroke-width", 0.4).attr('opacity', 1)
       this.svg.select('.arcG').selectAll('.dirNode').attr('opacity', 1)
+      this.svg.selectAll('defs').remove()
     },
     getMatrix(children){
       let matrix = new Array(children.length)
@@ -589,7 +668,7 @@ export default {
       this.num = d
       if(this.isSelected){
         // 还原初始半径和颜色
-        this.nodes.attr('fill', this.color)
+        this.nodes.attr('fill', this.nodeColor)
           .attr('r', this.defaultR)
         var fileid = [], val = []
         for(let i=0; i<this.num+1; i++){
