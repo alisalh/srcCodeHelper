@@ -90,8 +90,8 @@ export default {
       maxDepth: 0,
       curDepth: 6, //vue: 6, d3: 3
       libName: 'vue',
-      similarNum: 5,
-      maxNum: 10, //vue: 18, d3: 51
+      similarNum: 10,
+      maxNum: 20, //vue: 18, d3: 51
       isSelected: '1',
       filesInfo: null,
       filesDist: null,

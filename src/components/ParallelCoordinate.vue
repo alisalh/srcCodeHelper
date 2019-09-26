@@ -48,7 +48,7 @@ export default {
         dragging = {};
 
 
-      var line = d3.line().curve(d3.curveCardinal),
+      var line = d3.line(),
         background,
         foreground
 
@@ -162,7 +162,7 @@ export default {
         if (shouldDisplay) that.fileids.push(d.id)
         return shouldDisplay ? null : 'none'
       });
-      this.$bus.$emit('files-selected', this.fileids)
+      this.$bus.$emit('parallel-fileid-selected', this.fileids)
     }
   },
   mounted() {

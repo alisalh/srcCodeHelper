@@ -14,12 +14,13 @@ export default {
       depData: null,
       nodeColor: '#bababa',
       linkColor: '#bababa',
-      sourceColor: '#fb8072',
-      targetColor: '#bc80bd',
-      mergeColor: '#dc8098',
+      selectColor: '#e31a1c',
+      sourceColor: '#fb9a99',
+      targetColor: '#b2df8a',
       svgWidth: 0,
       svgHeight: 0,
       isSelected: false,
+      selectID: null,
       depth: 0,
       directData: null,
       //用于更新相似节点
@@ -42,8 +43,8 @@ export default {
       // 保留graphData的完整数据, 用于还原grah
       // 复制node
       this.graphData.nodes.forEach(node => {
-        newGraphData.nodes.push({fileid: node.fileid, depended: node.depended, depending: node.depending, 
-                                badDepNum: node.badDepNum, r: node.r, x: node.x, y: node.y})
+        newGraphData.nodes.push({fileid: node.fileid, filename: node.filename, 
+          depended: node.depended, depending: node.depending, r: node.r, x: node.x, y: node.y})
       })
       // 复制link
       this.graphData.links.forEach(link =>{
@@ -81,11 +82,11 @@ export default {
         })
         x = x/fileids.length
         y = y/fileids.length
-        let r = node.leaves().length
+        let r = node.leaves().length, dirname = node.data.name.substr(node.data.name.lastIndexOf('\\')+1)
         // 保留在当前层的文件节点
         newGraphData.nodes = newGraphData.nodes.filter(d => fileids.indexOf(d.fileid) === -1)
         //加入当前文件夹节点
-        newGraphData.nodes.push({type: 'dir', fileid: node.data.name, size: fileids.length, depended: depended, 
+        newGraphData.nodes.push({type: 'dir', fileid: node.data.name, filename: dirname, size: fileids.length, depended: depended, 
                             depending: depending, r: compute(linear(Math.sqrt(r)))*3, x: x, y: y})
         // 更新link
         let links = new Set()
@@ -195,52 +196,20 @@ export default {
         })
         .on('click', d=>{
           d3.event.stopPropagation()
-          this.resetState()
-          this.nodes.attr('opacity', 0.1)
-          this.links.attr('opacity', 0.1)
-          this.svg.select('.arcG').selectAll('.dirNode').attr('opacity', 0.1)
-          //当前节点颜色
-          let curNode = this.nodes.filter(node =>node.fileid === d.fileid)
-          if(d.type === 'dir') {
-            curNode.attr('stroke', '#8dd3c7').attr('opacity', 1)
-            this.svg.select('#dirNode'+d.index).attr('opacity', 1)
+          if(!pathSelected) return
+          if(!this.isSelected)
+            this.changeColor(data, d)
+          if(d.type != 'dir'){
+            this.$bus.$emit('file-selected', this.filesList[d.fileid])
+            this.$bus.$emit('graph-fileid-selected', d.fileid)
           }
-          else curNode.attr('fill', '#8dd3c7').attr('opacity', 1)
-          // 引用连线和被引用连线(source是引用)
-          let sourceLink = this.links.filter(link => link.source.fileid === d.fileid),
-            targetLink = this.links.filter(link => link.target.fileid === d.fileid)
-          sourceLink.attr('stroke', d=>{
-            if(this.directData.indexOf(d.source.fileid+'|'+d.target.fileid) != -1 && 
-              this.directData.indexOf(d.target.fileid+'|'+d.source.fileid) != -1)
-                return this.getGredientLink(d)
-            return this.sourceColor})
-            .attr('stroke-width', 2).attr('opacity', 1)
-          targetLink.attr('stroke', d=>{
-            if(this.directData.indexOf(d.source.fileid+'|'+d.target.fileid) != -1 && 
-              this.directData.indexOf(d.target.fileid+'|'+d.source.fileid) != -1)
-                return this.getGredientLink(d)
-            return this.targetColor}).attr('stroke-width', 2).attr('opacity', 1)
-          // 引用节点和被引用节点
-          let targetNodeID = data.links.filter(link => link.source.fileid === d.fileid).map(link => link.target.fileid),
-            sourceNodeID = data.links.filter(link => link.target.fileid === d.fileid).map(link => link.source.fileid)
-          let directNodeID = targetNodeID.filter(id => sourceNodeID.indexOf(id) != -1)
-          this.nodes.filter(node => targetNodeID.indexOf(node.fileid) != -1 && directNodeID.indexOf(node.fileid) === -1)
-            .attr('stroke', d =>{ if(d.type === 'dir') return this.sourceColor; else return 'white' })
-            .attr('fill', d =>{ if(d.type === 'dir') return 'white'; else return this.sourceColor})
-            .attr('opacity', 1)
-            .each(d =>{ if(d.type === 'dir') this.svg.select('#dirNode'+d.index).attr('opacity', 1) })
-          this.nodes.filter(node => sourceNodeID.indexOf(node.fileid) != -1 && directNodeID.indexOf(node.fileid) === -1)
-            .attr('stroke', d =>{ if(d.type === 'dir') return this.targetColor; else return 'white' })
-            .attr('fill', d =>{ if(d.type === 'dir') return 'white'; else return this.targetColor })
-            .attr('opacity', 1)
-            .each(d =>{ if(d.type === 'dir') this.svg.select('#dirNode'+d.index).attr('opacity', 1) })
-          this.nodes.filter(node => directNodeID.indexOf(node.fileid) != -1)
-            .attr('stroke', d =>{ if(d.type === 'dir') return this.getGredientNode(d); else return 'white' })
-            .attr('fill', d =>{ if(d.type === 'dir') return 'white'; else return this.getGredientNode(d)})
-            .attr('opacity', 1)
-            .each(d =>{ if(d.type === 'dir') this.svg.select('#dirNode'+d.index).attr('opacity', 1) })
+          else{
+            this.$bus.$emit('graph-dirid-selected', d.fileid)
+          }
+          this.isSelected = true
         })
-     
+      this.nodes.append('title').text(d => d.filename)
+
       function boundX(d){
         if(d < 0)
           d = 10
@@ -262,7 +231,12 @@ export default {
       }
       simulation.restart()
       this.drawArc()
-      this.svg.on('click', this.resetState)
+      this.svg.on('click', () =>{
+        this.selectID = null
+        this.isSelected = false
+        this.resetState()
+        this.$bus.$emit('graph-fileid-selected', null)
+      })
      
       function ticked() {
         vm.nodes
@@ -274,6 +248,53 @@ export default {
           .attr("x2", function(d) { return boundX(d.target.y) })
           .attr("y2", function(d) { return boundY(d.target.x) })
       }
+    },
+    changeColor(data, d){
+      this.resetState()
+      this.nodes.attr('opacity', 0.1)
+      this.links.attr('opacity', 0.05)
+      this.svg.select('.arcG').selectAll('.dirNode').attr('opacity', 0.05)
+      //当前节点颜色
+      let curNode = this.nodes.filter(node =>node.fileid === d.fileid)
+      if(d.type === 'dir') {
+        curNode.attr('stroke', this.selectColor).attr('opacity', 1)
+        this.svg.select('#dirNode'+d.index).attr('opacity', 1)
+      }
+      else curNode.attr('fill', this.selectColor).attr('opacity', 1)
+      // 引用连线和被引用连线(source是引用)
+      let sourceLink = this.links.filter(link => link.source.fileid === d.fileid),
+        targetLink = this.links.filter(link => link.target.fileid === d.fileid)
+      sourceLink.attr('stroke', d=>{
+        if(this.directData.indexOf(d.source.fileid+'|'+d.target.fileid) != -1 && 
+          this.directData.indexOf(d.target.fileid+'|'+d.source.fileid) != -1)
+            return this.getGredientLink(d)
+        return this.sourceColor})
+        .attr('stroke-width', 2).attr('opacity', 1)
+      targetLink.attr('stroke', d=>{
+        if(this.directData.indexOf(d.source.fileid+'|'+d.target.fileid) != -1 && 
+          this.directData.indexOf(d.target.fileid+'|'+d.source.fileid) != -1)
+            return this.getGredientLink(d)
+        return this.targetColor}).attr('stroke-width', 2).attr('opacity', 1)
+      // 引用节点和被引用节点
+      let targetNodeID = data.links.filter(link => link.source.fileid === d.fileid).map(link => link.target.fileid),
+        sourceNodeID = data.links.filter(link => link.target.fileid === d.fileid).map(link => link.source.fileid)
+      let directNodeID = targetNodeID.filter(id => sourceNodeID.indexOf(id) != -1)
+      this.nodes.filter(node => targetNodeID.indexOf(node.fileid) != -1 && directNodeID.indexOf(node.fileid) === -1)
+        .attr('stroke', d =>{ if(d.type === 'dir') return this.sourceColor; else return 'white' })
+        .attr('fill', d =>{ if(d.type === 'dir') return 'white'; else return this.sourceColor})
+        .attr('opacity', 1)
+        .each(d =>{ if(d.type === 'dir') this.svg.select('#dirNode'+d.index).attr('opacity', 1) })
+      this.nodes.filter(node => sourceNodeID.indexOf(node.fileid) != -1 && directNodeID.indexOf(node.fileid) === -1)
+        .attr('stroke', d =>{ if(d.type === 'dir') return this.targetColor; else return 'white' })
+        .attr('fill', d =>{ if(d.type === 'dir') return 'white'; else return this.targetColor })
+        .attr('opacity', 1)
+        .each(d =>{ if(d.type === 'dir') this.svg.select('#dirNode'+d.index).attr('opacity', 1) })
+      // 相互引用的节点
+      this.nodes.filter(node => directNodeID.indexOf(node.fileid) != -1)
+        .attr('stroke', d =>{ if(d.type === 'dir') return this.getGredientNode(d); else return 'white' })
+        .attr('fill', d =>{ if(d.type === 'dir') return 'white'; else return this.getGredientNode(d)})
+        .attr('opacity', 1)
+        .each(d =>{ if(d.type === 'dir') this.svg.select('#dirNode'+d.index).attr('opacity', 1) })
     },
     getGredientLink(d){
       let linearGradient = this.svg.append('defs')
@@ -302,7 +323,6 @@ export default {
       let linearGradient = this.svg.append('defs')
         .append('linearGradient')
         .attr('id', 'node-gradient'+d.index)
-        // .attr('gradientUnits','userSpaceOnUse')
         .attr('x1', '0%')
         .attr('y1', '0%')
         .attr('x2', '100%')
@@ -371,6 +391,8 @@ export default {
       }).attr("stroke-width", 0.4).attr('opacity', 1)
       this.svg.select('.arcG').selectAll('.dirNode').attr('opacity', 1)
       this.svg.selectAll('defs').remove()
+      this.svg.select('.badLinks').remove()
+      this.svg.select('.badNodes').remove()
     },
     getMatrix(children){
       let matrix = new Array(children.length)
@@ -404,27 +426,6 @@ export default {
     }
   },
   watch: {
-    // dependType(val){
-    //   // 颜色色卡
-    //   var c = d3.rgb(158,202,225), d = d3.rgb(8,81,156)
-    //   var computeArc = d3.interpolate(c, d)
-    //   if(val === '1'){
-    //     let linearArc = d3.scaleLinear().domain([1, this.maxDepended]).range([0, 1])
-    //     this.arcs.attr('fill', d =>{
-    //       if(d.depended === 0)
-    //         return '#bdbdbd'
-    //       return computeArc(linearArc(d.depended))
-    //     }) 
-    //   }
-    //   if(val === '2'){
-    //     let linearArc = d3.scaleLinear().domain([1, this.maxDepending]).range([0, 1])
-    //     this.arcs.attr('fill', d => {
-    //       if(d.depending === 0)
-    //         return '#bdbdbd'
-    //       return computeArc(linearArc(d.depending))
-    //     })
-    //   }
-    // }
   },
   created() {
     const requiredData = ['graphData', 'filesDist', 'root', 'filesList','dirs', 'maxDepth']
@@ -437,8 +438,6 @@ export default {
             node['r'] = this.defaultR
             node['depended'] = this.depended.filter(item => item.fileid === node.fileid)[0].depended
             node['depending'] = this.depending.filter(item => item.fileid === node.fileid)[0].depending
-            let badDepNum = this.badDeps[node.fileid].indirect + this.badDeps[node.fileid].direct
-            node['badDepNum'] = badDepNum
           })
           this.$axios.get('files/getDirect', {
           }).then(({data}) =>{
@@ -465,31 +464,93 @@ export default {
       this.depending = data.depending,
       this.maxDepending = data.maxDepending,
       this.maxDepended = data.maxDepended
+    })    
+    this.$bus.$on('depth-selected', d =>{
+      this.depth = d
+      this.updateGraph(this.depth)
     })
-    // 圆环类型切换
-    this.$bus.$on('depend-type-selected', d =>{
-      this.dependType = d
-    })
-    // 获取每个文件的坏依赖数目
-    this.$axios.get('files/getStackData', {
-    }).then(({ data }) => {
-      this.badDeps = data
-    })
-    this.$bus.$on('path-selected', d=> {
+    // sunburst点击事件
+    this.$bus.$on('sunburst-fileid-selected', d =>{
       if(this.depth != this.maxDepth)
         return
-      if(d.length === 0) this.resetState()
+      if(this.pathSelected)
+        return 
+      this.resetState()
+      if(d){
+        let curNode = this.nodes.filter(node=>node.fileid===d)
+        this.isSelected = true
+        this.selectID = d
+        // 颜色色卡
+        var a = d3.rgb(118, 42, 131), b = d3.rgb(153, 112, 171)
+        var compute = d3.interpolate(a, b)
+        function up(x, y) {return x.val -y.val}
+        // 显示相似节点
+        let dist = this.filesDist.filter(dist => parseInt(dist.id) === d)[0],
+          fileid = [], val = []
+        this.obj = []
+        for(var key in dist)
+          this.obj.push({key: key, val: dist[key]})
+        this.obj.sort(up)
+        for(let i=1; i <= this.num; i++){
+          fileid.push(parseInt(this.obj[i].key))
+          val.push(parseFloat(this.obj[i].val))
+        }
+        var linear = d3.scaleLinear().domain([Math.min(...val), Math.max(...val)]).range([0, 1])
+        fileid.forEach((id, i) =>{
+          this.nodes.filter(node => node.fileid === id)
+            .attr('fill', compute(linear(val[i])))
+        })
+        curNode.attr('fill', this.selectColor)
+      }
+    })
+    // 相似节点数调整
+    this.$bus.$on('similar-number-selected', d => {
+      this.num = d
+      if(this.depth != this.maxDepth) return
+      if(this.isSelected){
+        // 还原初始半径和颜色
+        this.nodes.filter(node => node.fileid != this.selectID).attr('fill', this.nodeColor)
+        var fileid = [], val = []
+        for(let i=1; i <= this.num; i++){
+          fileid.push(parseInt(this.obj[i].key))
+          val.push(parseFloat(this.obj[i].val))
+        }
+        // 颜色色卡
+        var a = d3.rgb(165,0,38), b = d3.rgb(253,174,97)
+        var compute = d3.interpolate(a, b)
+        var linear = d3.scaleLinear().domain([Math.min(...val), Math.max(...val)]).range([0, 1])
+        fileid.forEach((id, i) =>{
+          this.nodes.filter(node => node.fileid === id)
+            .attr('fill', compute(linear(val[i])))
+        })
+      }
+    })
+    // 平行坐标选择事件
+    this.$bus.$on('parallel-fileid-selected', d =>{
+      if(this.depth != this.maxDepth) return
+      if(d.length === this.filesList.length) this.nodes.attr('fill', this.nodeColor)
+      else this.nodes.attr('fill', node => {
+        if(d.indexOf(node.fileid) != -1) return this.selectColor
+        else return this.nodeColor
+      })
+    })
+    // 坏依赖选择事件
+    this.$bus.$on('path-selected', d=> {
+      if(this.depth != this.maxDepth) return
+      this.svg.select('.badLinks').remove()
+      this.svg.select('.badNodes').remove()
+      if(d.length === 0) {
+        this.nodes.attr('opacity', 1)
+        this.links.attr('opacity', 1)
+        this.pathSelected = false
+      }
       else{
         this.$axios.get('files/getPathInfoById', {
           ids: d
         }).then(({ data }) => {
-          this.resetState()
+          this.nodes.attr('opacity', 0.1)
+          this.links.attr('opacity', 0.05)
           this.pathSelected = true
-          // dependency graph变透明
-          this.nodes.attr('opacity', 0.05).attr('r', this.defaultR)
-          this.links.attr('opacity', 0.05).attr('stroke-width', 0.3)
-          this.arcs.attr('opacity', 0.05)
-
           let badNodes = new Set(), badLinks = new Set(), 
               directNodes = new Set(),directLinks = new Set()
           for(let i=0; i<data.subPaths.length; i++){
@@ -532,156 +593,76 @@ export default {
           directNodes = [...directNodes]
           directLinks = [...directLinks]
 
+          this.svg.append("defs")
+            .append("marker")
+            .attr('class', 'path-arrow')
+            .attr("id", "detail-path-arrow")
+            .attr("viewBox", "5 -5 20 20")
+            .attr("refX", 0)
+            .attr('refY', 0)
+            .attr("markerWidth", 15)
+            .attr("markerHeight", 15)
+            .attr('orient', 'auto')
+            .append("path")
+            .attr("d", "M15,-5L15,5L5,0")
+            .attr('fill', this.linkColor)
+          
           //先绘制node再绘制link
           this.svg.append('g').attr('class', 'badLinks')
-            .selectAll('line').data(badLinks)
-            .enter().append('line')
-            .attr('x1', d => badNodes.filter(node => node.fileid === d.source)[0].x)
-            .attr('y1', d => badNodes.filter(node => node.fileid === d.source)[0].y)
-            .attr('x2', d => badNodes.filter(node => node.fileid === d.target)[0].x)
-            .attr('y2', d => badNodes.filter(node => node.fileid === d.target)[0].y)
+            .selectAll('path').data(badLinks)
+            .enter().append('path')
+            .attr('d', d =>{
+              let start = badNodes.filter(node => node.fileid === d.source)[0],
+                end = badNodes.filter(node => node.fileid === d.target)[0]
+              return d3.line()([[start.x, start.y], [end.x, end.y]])
+            })
+            
             .attr('stroke', (d, i) => {
               if(directLinks.indexOf(d.source+'|'+d.target) != -1 && 
                 directLinks.indexOf(d.target+'|'+d.source) != -1){
-                return '#525252'
+                return '#1a1a1a'
               }
-              else{
-                let linearGradient = this.svg.append('defs')
-                  .attr('class', 'bad-link-gradient')
-                  .append('linearGradient')
-                  .attr('id', 'bad-link-gradient'+i)
-                  .attr('gradientUnits','userSpaceOnUse')
-                  .attr('x1', badNodes.filter(node => node.fileid === d.source)[0].x)
-                  .attr('y1', badNodes.filter(node => node.fileid === d.source)[0].y)
-                  .attr('x2', badNodes.filter(node => node.fileid === d.target)[0].x)
-                  .attr('y2', badNodes.filter(node => node.fileid === d.target)[0].y)
-                  linearGradient.append('stop')
-                    .attr('offset', '0%')
-                    .attr('stop-color', '#d9d9d9')
-                  linearGradient.append('stop')
-                    .attr('offset', '33%')
-                    .attr('stop-color', '#d9d9d9')
-                  linearGradient.append('stop')
-                    .attr('offset', '66%')
-                    .attr('stop-color', '#525252')
-                  linearGradient.append('stop')
-                    .attr('offset', '100%')
-                    .attr('stop-color', '#525252')
-                  return 'url(#bad-link-gradient'+i+')'
-              }
+              else return this.linkColor
             })
-            this.svg.append('g').attr('class', 'badNodes')
-              .selectAll('circle').data(badNodes)
-              .enter().append('circle')
-              .attr('r', d=>{
-                if(data.subPaths.length === 1 && data.subIDs.length > 0){
-                  return data.subIDs.filter(item => item.fileid === d.fileid)[0].ids.length/10+this.defaultR
-                }
-                else return this.defaultR
-              })
-              .attr('cx', d => d.x)
-              .attr('cy', d => d.y)
-              .attr('fill', d => {
-                if(directNodes.indexOf(d.fileid) === -1)
-                  return this.colorMap['indirect']
-                else
-                  return this.colorMap['direct']
-              })
-              .on('click', d =>{
-                this.$bus.$emit('file-selected', this.filesList[d.fileid])
-                this.$bus.$emit('graph-fileid-selected', d.fileid)
-                this.svg.append('text')
-                  .attr('class','path-text')
-                  .text(this.filesList[d.fileid].substr(this.filesList[d.fileid].lastIndexOf('\\')+1))
-                  .attr('x', d.x).attr('y', d.y)
-                  .attr('dx', ()=>{
-                    if(this.filesList[d.fileid].substr(this.filesList[d.fileid].lastIndexOf('\\')+1) === 'index.js')
-                    return '-4em'
-                    else
-                    return '0.7em'
-                  })
-                  .attr('dy', '0.4em')
-                  .attr('font-size', '12px')
-                d3.event.stopPropagation()
-              })
-              .on('mouseenter', d=>{
-                if(data.subPaths.length === 1){
-                  this.$bus.$emit('bad-fileid-selected', data.subIDs.filter(item => item.fileid === d.fileid)[0].ids)
-                }
-              })
-              .on('mouseleave', d=>{
-                if(data.subPaths.length === 1){
-                  this.$bus.$emit('bad-fileid-selected', null)
-                }
-              })
-        })
-      }
-    })
-          
-    this.$bus.$on('depth-selected', d =>{
-      this.depth = d
-      this.updateGraph(this.depth)
-    })
-    this.$bus.$on('sunburst-fileid-selected', d =>{
-      if(this.depth != this.maxDepth)
-        return
-      if(this.pathSelected)
-        return 
-      this.resetState()
-      if(d){
-        let curNode = this.nodes.filter(node=>node.fileid===d)
-        this.svg.append('g')
-          .attr('class', 'select-marker')
-          .attr("viewBox", "5 -5 20 20")
-          .attr("refX", 0)
-          .attr('refY', 0)
-          .attr("markerWidth", 15)
-          .attr("markerHeight", 15)
-          .attr('orient', 'auto')
-          .append("path")
-          .attr("d", "M15,-5L15,5L5,0")
-          .attr('transform', 'translate('+curNode.attr('cx')+','+curNode.attr('cy')+') rotate(90)')
-        this.isSelected = true
-        // 颜色色卡
-        var a = d3.rgb(165,0,38), b = d3.rgb(253,174,97)
-        var compute = d3.interpolate(a, b)
-        function up(x, y) {return x.val -y.val}
-        // 显示相似节点
-        let dist = this.filesDist.filter(dist => parseInt(dist.id) === d)[0],
-          fileid = [], val = []
-        this.obj = []
-        for(var key in dist)
-          this.obj.push({key: key, val: dist[key]})
-        this.obj.sort(up)
-        for(let i=0; i<this.num+1; i++){
-          fileid.push(parseInt(this.obj[i].key))
-          val.push(parseFloat(this.obj[i].val))
-        }
-        var linear = d3.scaleLinear().domain([Math.min(...val), Math.max(...val)]).range([0, 1])
-        fileid.forEach((id, i) =>{
-          this.nodes.filter(node => node.fileid === id)
-            .attr('fill', compute(linear(val[i])))
-        })
-      }
-    })
-    this.$bus.$on('similar-number-selected', d => {
-      this.num = d
-      if(this.isSelected){
-        // 还原初始半径和颜色
-        this.nodes.attr('fill', this.nodeColor)
-          .attr('r', this.defaultR)
-        var fileid = [], val = []
-        for(let i=0; i<this.num+1; i++){
-          fileid.push(parseInt(this.obj[i].key))
-          val.push(parseFloat(this.obj[i].val))
-        }
-        // 颜色色卡
-        var a = d3.rgb(165,0,38), b = d3.rgb(253,174,97)
-        var compute = d3.interpolate(a, b)
-        var linear = d3.scaleLinear().domain([Math.min(...val), Math.max(...val)]).range([0, 1])
-        fileid.forEach((id, i) =>{
-          this.nodes.filter(node => node.fileid === id)
-            .attr('fill', compute(linear(val[i])))
+            .attr("marker-start", d=> {
+              if(directLinks.indexOf(d.source+'|'+d.target) === -1 || 
+                directLinks.indexOf(d.target+'|'+d.source) === -1)
+              return "url(#detail-path-arrow)"
+            })
+
+          this.svg.append('g').attr('class', 'badNodes')
+            .selectAll('circle').data(badNodes)
+            .enter().append('circle')
+            .attr('r', d=>{
+              if(data.subPaths.length === 1 && data.subIDs.length > 0){
+                return data.subIDs.filter(item => item.fileid === d.fileid)[0].ids.length/10+this.defaultR
+              }
+              else return this.defaultR
+            })
+            .attr('cx', d => d.x)
+            .attr('cy', d => d.y)
+            .attr('fill', d => {
+              if(directNodes.indexOf(d.fileid) === -1)
+                return this.colorMap['indirect']
+              else
+                return this.colorMap['direct']
+            })
+            .on('click', d =>{
+              d3.event.stopPropagation()
+              this.$bus.$emit('file-selected', this.filesList[d.fileid])
+              this.$bus.$emit('graph-fileid-selected', d.fileid)
+            })
+            .append('title').text(d => d.filename)
+            // .on('mouseenter', d=>{
+            //   if(data.subPaths.length === 1){
+            //     this.$bus.$emit('bad-fileid-selected', data.subIDs.filter(item => item.fileid === d.fileid)[0].ids)
+            //   }
+            // })
+            // .on('mouseleave', d=>{
+            //   if(data.subPaths.length === 1){
+            //     this.$bus.$emit('bad-fileid-selected', null)
+            //   }
+            // })
         })
       }
     })

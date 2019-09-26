@@ -26,7 +26,7 @@ export default {
       centerSvg: null,
       node: null,
       colorData:['#b90207','#cb181d','#fb6a4a','#fcbba1'],
-      selectedNode: null
+      selectedNode: []
     }
   },
   props: ['root', 'filesInfo', 'badDependData', 'maxDepth', 'colorMap', 'libName'],
@@ -203,26 +203,27 @@ export default {
         if(d.data.type === 'file'){
           this.$bus.$emit('file-selected', d.data.name)
           this.$bus.$emit('sunburst-fileid-selected', d.data.id)
-          this.selectedNode = d
+          this.selectedNode.push(d)
+          this.svg.selectAll('.linkG path').remove()
+          this.svg.select('.arrow-line').remove()
           if(this.dependType === '1')
             this.drawSourceLinks(d)
           if(this.dependType === '2')
             this.drawTargetLinks(d)
         }
+        this.node.attr('opacity', 1)
         d3.event.stopPropagation()
       })
       this.svg.on('click', d=>{
         this.$bus.$emit('sunburst-fileid-selected', null)
         this.svg.selectAll('.linkG path').remove()
-        this.selectedNode = null
-        this.svg.select('.arrow-line').remove()
+        this.selectedNode = []
+        this.svg.selectAll('.arrow-line').remove()
       })
     },
     //绘制被引用的连线
     drawSourceLinks(d){
       // 添加引用和被引用连线
-      this.svg.selectAll('.linkG path').remove()
-      this.svg.select('.arrow-line').remove()
       let selectedFile = this.filesInfo.filter(file => file.id === d.data.id)
       let source = selectedFile[0].fileInfo.depended
       source.forEach(s => {
@@ -256,8 +257,6 @@ export default {
     //绘制引用的连线
     drawTargetLinks(d){
       // 添加引用和被引用连线
-      this.svg.selectAll('.linkG path').remove()
-      this.svg.select('.arrow-line').remove()
       let selectedFile = this.filesInfo.filter(file => file.id === d.data.id)
       let source = selectedFile[0].fileInfo.depending
       source.forEach(s => {
@@ -296,7 +295,6 @@ export default {
   watch: {
     dependType(val){
       this.svg.selectAll('.linkG path').remove()
-      this.svg.selectAll('.link-linear').remove()
       if(val === '1'){
         var a = d3.rgb(252,187,161), b = d3.rgb(185,2,7)
         var compute = d3.interpolate(a, b)
@@ -308,7 +306,9 @@ export default {
           else
             return 'none'
         })
-        if(this.selectedNode) this.drawSourceLinks(this.selectedNode)
+        this.svg.selectAll('.linkG path').remove()
+        this.svg.selectAll('.arrow-line').remove()
+        if(this.selectedNode.length > 0) this.selectedNode.forEach(d => this.drawSourceLinks(d))
       }
       if(val === '2'){
         var a = d3.rgb(252,187,161), b = d3.rgb(185,2,7)
@@ -321,7 +321,9 @@ export default {
           else
             return 'none'
         })
-        if(this.selectedNode) this.drawTargetLinks(this.selectedNode)
+        this.svg.selectAll('.linkG path').remove()
+        this.svg.selectAll('.arrow-line').remove()
+        if(this.selectedNode.length > 0) this.selectedNode.forEach(d => this.drawTargetLinks(d))
       }
     }
   },
@@ -360,35 +362,41 @@ export default {
     this.$bus.$on('depend-type-selected', d =>{
       this.dependType = d
     })
-    this.$bus.$on('files-selected', d =>{
-      this.node.filter(node => node.depth === this.maxDepth)
-        .attr('opacity', 0.1)
-      this.node.filter(node => node.depth === this.maxDepth && d.indexOf(node.data.id) != -1)
-        .attr('opacity', 1)
-    })
+    // 节点连接图的文件点击事件
     this.$bus.$on('graph-fileid-selected', d =>{
-      if(!d){
-        // 点击graph svg的时候还原状态
-        this.svg.selectAll('.linkG path').remove()
-        this.svg.selectAll('.link-linear').remove()
-        this.node.select('.hierarchy-node')
-          .style('stroke','white')
-        this.selectedNode = null
-      }else{
-        this.node.select('.hierarchy-node')
-        .style('stroke','white')
-        this.node.each((node,i)=> {
-          if(node.depth === this.maxDepth && node.data.id === d){
-            this.node.select('#hierarchy-node-'+i)
-              .style('stroke','#081d58')
-            this.node.filter(node => node.data.id === d)
-              .attr('opacity', 1)
-            this.selectedNode = node
-            if(this.dependType === '1') this.drawSourceLinks(node)
-            if(this.dependType === '2') this.drawTargetLinks(node)
-          } 
+      this.svg.selectAll('.linkG path').remove()
+      this.svg.selectAll('.arrow-line').remove()
+      this.node.attr('opacity', 1)
+      this.selectedNode = []
+      if(d) {
+        this.node.filter(node =>node.data.id === d).each(node =>{
+          this.selectedNode.push(node)
+          if(this.dependType === '1') this.drawSourceLinks(node)
+          if(this.dependType === '2') this.drawTargetLinks(node)
         })
-      }
+      } 
+    })
+    // 节点连接图的文件夹点击事件
+    this.$bus.$on('graph-dirid-selected', d =>{
+      this.svg.selectAll('.linkG path').remove()
+      this.svg.selectAll('.arrow-line').remove()
+      this.selectedNode = []
+      if(d){
+        this.node.filter(node => node.data.type === 'file' && node.data.name.indexOf(d) != -1).each(node =>{
+          this.selectedNode.push(node)
+          if(this.dependType === '1') this.drawSourceLinks(node)
+          if(this.dependType === '2') this.drawTargetLinks(node)
+        })
+      } 
+    })
+    // 平行坐标的选择事件
+    this.$bus.$on('parallel-fileid-selected', d =>{
+      this.svg.selectAll('.linkG path').remove()
+      this.svg.selectAll('.arrow-line').remove()
+      this.node.filter(node => node.data.type === 'file').attr('opacity', node =>{
+        if(d.indexOf(node.data.id) != -1) return 1
+        else return 0.1
+      })
     })
   }
 }

@@ -80,20 +80,8 @@ export default {
             .attr('cx', d => x(parseFloat(d.x)))
             .attr('cy', d => y(parseFloat(d.y)))
             .attr('fill', d => this.colorMap[d.type])
-            // .on('click', d => {
-            //     this.selectedId = d.id
-            //     this.circle.filter(dot => dot.id === d.id)
-            //         .attr('stroke', '#4393c3').attr('stroke-width', 2.5)
-            //     this.$bus.$emit('path-selected', [d.id])
-            //     d3.event.stopPropagation()
-            // })
 
         this.drawLegend(legendData)
-        // this.svg.on('click', ()=>{
-        //     this.circle.attr('stroke', null)
-        //     this.$bus.$emit('path-selected', [])
-        //     this.selectedId = null
-        // })
         var brush = d3.brush()
             .on("end", brushend)
             .extent([[0, 0], [this.svgWidth, this.svgHeight]])
