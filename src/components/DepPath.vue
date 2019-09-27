@@ -1,5 +1,7 @@
 <template>
-  <div ref="root" class="dep-path">
+  <div class="dep-path">
+  <div ref="sub" class="legend"></div>
+  <div ref="root" class="node-link"></div>
   </div>
 </template>
 <script type="text/javascript">
@@ -38,6 +40,51 @@ export default {
   },
   props:['graphData', 'filesDist', 'root', 'filesList', 'dirs', 'maxDepth', 'colorMap', 'libName'],
   methods: {
+    drawLegend(){
+      let legendG = this.subsvg.append('g').attr('class', 'legendG')
+      let startY = 50, endX = 73, startX = 20
+      legendG.append('text').attr('x', startX).attr('y', startY+5).text('The encoding of links')
+      legendG.append('path').attr('d', d3.line()([[startX, startY+20], [65, startY+20]])).attr('stroke', this.linkColor).attr('stroke-width', 2)
+      legendG.append('text').attr('x', endX).attr('y', startY+30).text('unidirection')
+      legendG.append('path').attr('d', d3.line()([[startX, startY+35], [60, startY+35]])).attr('stroke', this.linkColor).attr('stroke-width', 2).attr("marker-end", "url(#detail-path-arrow)")
+
+      legendG.append('path').attr('d', d3.line()([[startX, startY+60], [65, startY+60]])).attr('stroke', '#1a1a1a').attr('stroke-width', 2)
+      legendG.append('path').attr('d', d3.line()([[startX, startY+75], [43, startY+75]])).attr('stroke', this.sourceColor).attr('stroke-width', 2)
+      legendG.append('path').attr('d', d3.line()([[43, startY+75], [65, startY+75]])).attr('stroke', this.targetColor).attr('stroke-width', 2)
+      legendG.append('text').attr('x', endX).attr('y', startY+70).text('bidirection')
+      
+      legendG.append('path').attr('d', d3.line()([[startX, startY+100], [65, startY+100]])).attr('stroke', this.sourceColor).attr('stroke-width', 2)
+      legendG.append('text').attr('x', endX).attr('y', startY+103).text('depending')
+      legendG.append('path').attr('d', d3.line()([[startX, startY+120], [65, startY+120]])).attr('stroke', this.targetColor).attr('stroke-width', 2)
+      legendG.append('text').attr('x', endX).attr('y', startY+123).text('depended')
+      
+      
+      legendG.append('text').attr('x', startX).attr('y', startY+150).text('The encoding of nodes')
+      legendG.append('circle').attr('r', this.defaultR*2).attr('cx', 40).attr('cy', startY+170).attr('fill', this.nodeColor)
+      legendG.append('text').attr('x', endX).attr('y', startY+174).text('file')
+      legendG.append('circle').attr('r', this.defaultR*1.8).attr('cx', 40).attr('cy', startY+190).attr('fill', 'white').attr('stroke', this.nodeColor).attr('stroke-width', 3)
+      legendG.append('text').attr('x', endX).attr('y', startY+194).text('dir')
+
+      legendG.append('circle').attr('r', this.defaultR*2).attr('cx', 40).attr('cy', startY+215).attr('fill', this.selectColor)
+      legendG.append('text').attr('x', endX).attr('y', startY+219).text('selected')
+
+            legendG.append('circle').attr('r', this.defaultR*2).attr('cx', 40).attr('cy', startY+240).attr('fill', '#762a83')
+      legendG.append('text').attr('x', endX).attr('y', startY+244).text('similar')
+
+      legendG.append('circle').attr('r', this.defaultR*2).attr('cx', 40).attr('cy', startY+265).attr('fill', this.sourceColor)
+      legendG.append('text').attr('x', endX).attr('y', startY+269).text('depended')
+      legendG.append('circle').attr('r', this.defaultR*2).attr('cx', 40).attr('cy', startY+285).attr('fill', this.targetColor)
+      legendG.append('text').attr('x', endX).attr('y', startY+289).text('depending')
+      legendG.append('circle').attr('r', this.defaultR*2).attr('cx', 40).attr('cy', startY+305).attr('fill', this.getGredientNode(this.subsvg, {index: -1}))
+      legendG.append('text').attr('x', endX).attr('y', startY+309).text('both')
+
+      legendG.append('circle').attr('r', this.defaultR*2).attr('cx', 40).attr('cy', startY+330).attr('fill', this.colorMap['direct'])
+      legendG.append('text').attr('x', endX).attr('y', startY+334).text('direct')
+      legendG.append('circle').attr('r', this.defaultR*2).attr('cx', 40).attr('cy', startY+350).attr('fill', this.colorMap['indirect'])
+      legendG.append('text').attr('x', endX).attr('y', startY+354).text('indirect')
+
+
+    },
     updateGraph(depth){
       let newGraphData = {nodes:[], links:[]}
       // 保留graphData的完整数据, 用于还原grah
@@ -131,7 +178,7 @@ export default {
       this.draw(newGraphData)
     },
     draw(data) {
-      d3.select('.dep-path').selectAll('svg *').remove()
+      d3.select('.node-link').selectAll('svg *').remove()
       let vm = this
       var simulation
       if(this.libName === 'vue'){
@@ -142,8 +189,10 @@ export default {
           .force('collision', d3.forceCollide().radius(function(d) { return d.r + 10 }))
         if(this.depth === 3)
           simulation.force('collision', d3.forceCollide().radius(function(d) { return d.r*1.5 + 10}))
-        if(this.depth <= 2)
+        if(this.depth === 2)
           simulation.force('collision', d3.forceCollide().radius(function(d) { return d.r*1.5 + 15}))
+        if(this.depth === 1)
+          simulation.force('collision', d3.forceCollide().radius(function(d) { return d.r*1.5 + 30}))
       }
      if(this.libName === 'd3'){
         simulation = d3.forceSimulation()
@@ -196,8 +245,7 @@ export default {
         })
         .on('click', d=>{
           d3.event.stopPropagation()
-          if(!pathSelected) return
-          if(!this.isSelected)
+          if(!this.isSelected && !this.pathSelected)
             this.changeColor(data, d)
           if(d.type != 'dir'){
             this.$bus.$emit('file-selected', this.filesList[d.fileid])
@@ -291,8 +339,8 @@ export default {
         .each(d =>{ if(d.type === 'dir') this.svg.select('#dirNode'+d.index).attr('opacity', 1) })
       // 相互引用的节点
       this.nodes.filter(node => directNodeID.indexOf(node.fileid) != -1)
-        .attr('stroke', d =>{ if(d.type === 'dir') return this.getGredientNode(d); else return 'white' })
-        .attr('fill', d =>{ if(d.type === 'dir') return 'white'; else return this.getGredientNode(d)})
+        .attr('stroke', d =>{ if(d.type === 'dir') return this.getGredientNode(this.svg, d); else return 'white' })
+        .attr('fill', d =>{ if(d.type === 'dir') return 'white'; else return this.getGredientNode(this.svg, d)})
         .attr('opacity', 1)
         .each(d =>{ if(d.type === 'dir') this.svg.select('#dirNode'+d.index).attr('opacity', 1) })
     },
@@ -319,8 +367,8 @@ export default {
           .attr('stop-color', this.targetColor)
         return 'url(#link-gradient'+d.index+')'
     },
-    getGredientNode(d){                  
-      let linearGradient = this.svg.append('defs')
+    getGredientNode(appendObject, d){                  
+      let linearGradient = appendObject.append('defs')
         .append('linearGradient')
         .attr('id', 'node-gradient'+d.index)
         .attr('x1', '0%')
@@ -455,9 +503,28 @@ export default {
     // 获取高度, 添加svg
     this.svgWidth = Math.floor(this.$refs.root.clientWidth)
     this.svgHeight = Math.floor(this.$refs.root.clientHeight)
-    this.svg = d3.select('.dep-path').append("svg")
+    this.subsvgWidth = Math.floor(this.$refs.sub.clientWidth)
+    this.subsvgHeight = Math.floor(this.$refs.sub.clientHeight)
+    this.svg = d3.select('.node-link').append("svg")
       .attr("width", this.svgWidth)
       .attr("height", this.svgHeight)
+    this.subsvg = d3.select('.legend').append("svg")
+      .attr("width", this.subsvgWidth)
+      .attr("height", this.subsvgHeight)
+    this.subsvg.append("defs")
+      .append("marker")
+      .attr('class', 'path-arrow')
+      .attr("id", "detail-path-arrow")
+      .attr("viewBox", "0 -5 20 20")
+      .attr("refX", 0)
+      .attr('refY', 0)
+      .attr("markerWidth", 10)
+      .attr("markerHeight", 10)
+      .attr('orient', 'auto')
+      .append("path")
+      .attr("d", "M0,-5L8,0L0,5")
+      .attr('fill', this.linkColor)
+    this.drawLegend()
     // 圆环编码数据
     this.$bus.$on('dependData', data =>{
       this.depended = data.depended,
@@ -652,17 +719,7 @@ export default {
               this.$bus.$emit('file-selected', this.filesList[d.fileid])
               this.$bus.$emit('graph-fileid-selected', d.fileid)
             })
-            .append('title').text(d => d.filename)
-            // .on('mouseenter', d=>{
-            //   if(data.subPaths.length === 1){
-            //     this.$bus.$emit('bad-fileid-selected', data.subIDs.filter(item => item.fileid === d.fileid)[0].ids)
-            //   }
-            // })
-            // .on('mouseleave', d=>{
-            //   if(data.subPaths.length === 1){
-            //     this.$bus.$emit('bad-fileid-selected', null)
-            //   }
-            // })
+            .append('title').text(d => d.filename)      
         })
       }
     })
@@ -672,5 +729,13 @@ export default {
 <style type="text/css" lang="scss">
 .dep-path {
   height: 100%;
+  display: flex;
+  .node-link{
+    flex: 5;
+  }
+  .legend{
+    flex: 1;
+    font-size: 14px;
+  }
 }
 </style>

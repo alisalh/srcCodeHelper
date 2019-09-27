@@ -160,6 +160,8 @@ export default {
             else return name
           }
         })
+      this.node.append("title")
+        .text((d) => d.data.name.substr(d.data.name.lastIndexOf('\\')+1))
       // 添加依赖编码
       this.root.descendants().slice(1).forEach((d, i) =>{
         if(d.data.type === 'file'){

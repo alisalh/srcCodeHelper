@@ -7,7 +7,7 @@
           <div class='text-div'>Depth</div>
           <div class='slider-div'>
             <el-slider v-model="curDepth" :step="1" 
-              :min="1" :max="6" size="mini" show-input>
+              :min="1" :max="3" size="mini" show-input>
             </el-slider>
             <!-- <el-input v-model="curDepth" size="mini"></el-input> -->
           </div>
@@ -24,8 +24,8 @@
         <div class='ratio-wrapper'>
           <div class='text-div'>Type</div>
           <div class='ratio-div'>
-            <el-radio v-model="isSelected" label="1">Depended</el-radio>
             <el-radio v-model="isSelected" label="2">Depending</el-radio>
+            <el-radio v-model="isSelected" label="1">Depended</el-radio>
           </div>
         </div>
       </div>
@@ -88,8 +88,8 @@ export default {
       selectedFileName: 'None',
       treeRoot: null,
       maxDepth: 0,
-      curDepth: 6, //vue: 6, d3: 3
-      libName: 'vue',
+      curDepth: 3, //vue: 6, d3: 3
+      libName: 'd3',
       similarNum: 10,
       maxNum: 20, //vue: 18, d3: 51
       isSelected: '1',
