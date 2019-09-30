@@ -26,7 +26,8 @@ export default {
       centerSvg: null,
       node: null,
       colorData:['#b90207','#cb181d','#fb6a4a','#fcbba1'],
-      selectedNode: []
+      selectedNode: [],
+      isDirSelected: false
     }
   },
   props: ['root', 'filesInfo', 'badDependData', 'maxDepth', 'colorMap', 'libName'],
@@ -204,14 +205,17 @@ export default {
       this.node.on('click', (d,i) => {
         if(d.data.type === 'file'){
           this.$bus.$emit('file-selected', d.data.name)
-          this.$bus.$emit('sunburst-fileid-selected', d.data.id)
-          this.selectedNode.push(d)
-          this.svg.selectAll('.linkG path').remove()
-          this.svg.select('.arrow-line').remove()
-          if(this.dependType === '1')
-            this.drawSourceLinks(d)
-          if(this.dependType === '2')
-            this.drawTargetLinks(d)
+           this.selectedNode = []
+          if(!this.isDirSelected){
+            this.$bus.$emit('sunburst-fileid-selected', d.data.id)
+            this.selectedNode.push(d)
+            this.svg.selectAll('.linkG path').remove()
+            this.svg.selectAll('.arrow-line').remove()
+            if(this.dependType === '1')
+              this.drawSourceLinks(d)
+            if(this.dependType === '2')
+              this.drawTargetLinks(d)
+          }
         }
         this.node.attr('opacity', 1)
         d3.event.stopPropagation()
@@ -221,6 +225,7 @@ export default {
         this.svg.selectAll('.linkG path').remove()
         this.selectedNode = []
         this.svg.selectAll('.arrow-line').remove()
+        this.isDirSelected = false
       })
     },
     //绘制被引用的连线
@@ -384,12 +389,16 @@ export default {
       this.svg.selectAll('.arrow-line').remove()
       this.selectedNode = []
       if(d){
+        this.isDirSelected = true
         this.node.filter(node => node.data.type === 'file' && node.data.name.indexOf(d) != -1).each(node =>{
           this.selectedNode.push(node)
           if(this.dependType === '1') this.drawSourceLinks(node)
           if(this.dependType === '2') this.drawTargetLinks(node)
         })
       } 
+      else{
+        this.isDirSelected = false
+      }
     })
     // 平行坐标的选择事件
     this.$bus.$on('parallel-fileid-selected', d =>{

@@ -80,8 +80,16 @@ export default {
             .attr('cx', d => x(parseFloat(d.x)))
             .attr('cy', d => y(parseFloat(d.y)))
             .attr('fill', d => this.colorMap[d.type])
-
-        this.drawLegend(legendData)
+        if(this.libName === 'd3')
+            this.drawLegend(legendData)
+        else{
+            legendData ={}
+            for(let i=2; i<=10; i+=2){
+                let key = compute(linear(Math.sqrt(i)))
+                legendData[key] = i
+            }
+            this.drawLegend(legendData)
+        }
         var brush = d3.brush()
             .on("end", brushend)
             .extent([[0, 0], [this.svgWidth, this.svgHeight]])

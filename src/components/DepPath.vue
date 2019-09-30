@@ -43,45 +43,45 @@ export default {
     drawLegend(){
       let legendG = this.subsvg.append('g').attr('class', 'legendG')
       let startY = 50, endX = 73, startX = 20
-      legendG.append('text').attr('x', startX).attr('y', startY+5).text('The encoding of links')
-      legendG.append('path').attr('d', d3.line()([[startX, startY+20], [65, startY+20]])).attr('stroke', this.linkColor).attr('stroke-width', 2)
-      legendG.append('text').attr('x', endX).attr('y', startY+30).text('unidirection')
-      legendG.append('path').attr('d', d3.line()([[startX, startY+35], [60, startY+35]])).attr('stroke', this.linkColor).attr('stroke-width', 2).attr("marker-end", "url(#detail-path-arrow)")
+      legendG.append('text').attr('class', 'lt').attr('x', startX).attr('y', startY+5).text('The encoding of links')
+      legendG.append('path').attr('class', 'l1').attr('d', d3.line()([[startX, startY+20], [65, startY+20]])).attr('stroke', this.linkColor).attr('stroke-width', 2)
+      legendG.append('text').attr('class', 'l1 l2').attr('x', endX).attr('y', startY+30).text('unidirection')
+      legendG.append('path').attr('class', 'l2').attr('d', d3.line()([[startX, startY+35], [60, startY+35]])).attr('stroke', this.linkColor).attr('stroke-width', 2).attr("marker-end", "url(#legend-arrow)")
 
-      legendG.append('path').attr('d', d3.line()([[startX, startY+60], [65, startY+60]])).attr('stroke', '#1a1a1a').attr('stroke-width', 2)
-      legendG.append('path').attr('d', d3.line()([[startX, startY+75], [43, startY+75]])).attr('stroke', this.sourceColor).attr('stroke-width', 2)
-      legendG.append('path').attr('d', d3.line()([[43, startY+75], [65, startY+75]])).attr('stroke', this.targetColor).attr('stroke-width', 2)
-      legendG.append('text').attr('x', endX).attr('y', startY+70).text('bidirection')
+      legendG.append('path').attr('class', 'l3').attr('d', d3.line()([[startX, startY+60], [65, startY+60]])).attr('stroke', '#1a1a1a').attr('stroke-width', 2)
+      legendG.append('path').attr('class', 'l4').attr('d', d3.line()([[startX, startY+75], [43, startY+75]])).attr('stroke', this.sourceColor).attr('stroke-width', 2)
+      legendG.append('path').attr('class', 'l4').attr('d', d3.line()([[43, startY+75], [65, startY+75]])).attr('stroke', this.targetColor).attr('stroke-width', 2)
+      legendG.append('text').attr('class', 'l3 l4').attr('x', endX).attr('y', startY+70).text('bidirection')
       
-      legendG.append('path').attr('d', d3.line()([[startX, startY+100], [65, startY+100]])).attr('stroke', this.sourceColor).attr('stroke-width', 2)
-      legendG.append('text').attr('x', endX).attr('y', startY+103).text('depending')
-      legendG.append('path').attr('d', d3.line()([[startX, startY+120], [65, startY+120]])).attr('stroke', this.targetColor).attr('stroke-width', 2)
-      legendG.append('text').attr('x', endX).attr('y', startY+123).text('depended')
+      legendG.append('path').attr('class', 'l5').attr('d', d3.line()([[startX, startY+100], [65, startY+100]])).attr('stroke', this.sourceColor).attr('stroke-width', 2)
+      legendG.append('text').attr('class', 'l5').attr('x', endX).attr('y', startY+103).text('outgoing')
+      legendG.append('path').attr('class', 'l5').attr('d', d3.line()([[startX, startY+120], [65, startY+120]])).attr('stroke', this.targetColor).attr('stroke-width', 2)
+      legendG.append('text').attr('class', 'l5').attr('x', endX).attr('y', startY+123).text('incoming')
       
       
-      legendG.append('text').attr('x', startX).attr('y', startY+150).text('The encoding of nodes')
-      legendG.append('circle').attr('r', this.defaultR*2).attr('cx', 40).attr('cy', startY+170).attr('fill', this.nodeColor)
-      legendG.append('text').attr('x', endX).attr('y', startY+174).text('file')
-      legendG.append('circle').attr('r', this.defaultR*1.8).attr('cx', 40).attr('cy', startY+190).attr('fill', 'white').attr('stroke', this.nodeColor).attr('stroke-width', 3)
-      legendG.append('text').attr('x', endX).attr('y', startY+194).text('dir')
+      legendG.append('text').attr('class', 'lt').attr('x', startX).attr('y', startY+150).text('The encoding of nodes')
+      legendG.append('circle').attr('class', 'l6').attr('r', this.defaultR*2).attr('cx', 40).attr('cy', startY+170).attr('fill', this.nodeColor)
+      legendG.append('text').attr('class', 'l6').attr('x', endX).attr('y', startY+174).text('file')
+      legendG.append('circle').attr('class', 'l6').attr('r', this.defaultR*1.8).attr('cx', 40).attr('cy', startY+190).attr('fill', 'white').attr('stroke', this.nodeColor).attr('stroke-width', 3)
+      legendG.append('text').attr('class', 'l6').attr('x', endX).attr('y', startY+194).text('dir')
 
-      legendG.append('circle').attr('r', this.defaultR*2).attr('cx', 40).attr('cy', startY+215).attr('fill', this.selectColor)
-      legendG.append('text').attr('x', endX).attr('y', startY+219).text('selected')
+      legendG.append('circle').attr('class', 'l7').attr('r', this.defaultR*2).attr('cx', 40).attr('cy', startY+215).attr('fill', this.selectColor)
+      legendG.append('text').attr('class', 'l7').attr('x', endX).attr('y', startY+219).text('selected')
 
-            legendG.append('circle').attr('r', this.defaultR*2).attr('cx', 40).attr('cy', startY+240).attr('fill', '#762a83')
-      legendG.append('text').attr('x', endX).attr('y', startY+244).text('similar')
+      legendG.append('circle').attr('class', 'l8').attr('r', this.defaultR*2).attr('cx', 40).attr('cy', startY+240).attr('fill', '#762a83')
+      legendG.append('text').attr('class', 'l8').attr('x', endX).attr('y', startY+244).text('similar')
 
-      legendG.append('circle').attr('r', this.defaultR*2).attr('cx', 40).attr('cy', startY+265).attr('fill', this.sourceColor)
-      legendG.append('text').attr('x', endX).attr('y', startY+269).text('depended')
-      legendG.append('circle').attr('r', this.defaultR*2).attr('cx', 40).attr('cy', startY+285).attr('fill', this.targetColor)
-      legendG.append('text').attr('x', endX).attr('y', startY+289).text('depending')
-      legendG.append('circle').attr('r', this.defaultR*2).attr('cx', 40).attr('cy', startY+305).attr('fill', this.getGredientNode(this.subsvg, {index: -1}))
-      legendG.append('text').attr('x', endX).attr('y', startY+309).text('both')
+      legendG.append('circle').attr('class', 'l5').attr('r', this.defaultR*2).attr('cx', 40).attr('cy', startY+265).attr('fill', this.sourceColor)
+      legendG.append('text').attr('class', 'l5').attr('x', endX).attr('y', startY+269).text('depending')
+      legendG.append('circle').attr('class', 'l5').attr('r', this.defaultR*2).attr('cx', 40).attr('cy', startY+285).attr('fill', this.targetColor)
+      legendG.append('text').attr('class', 'l5').attr('x', endX).attr('y', startY+289).text('depended')
+      legendG.append('circle').attr('class', 'l5').attr('r', this.defaultR*2).attr('cx', 40).attr('cy', startY+305).attr('fill', this.getGredientNode(this.subsvg, {index: -1}))
+      legendG.append('text').attr('class', 'l5').attr('x', endX).attr('y', startY+309).text('interdependent')
 
-      legendG.append('circle').attr('r', this.defaultR*2).attr('cx', 40).attr('cy', startY+330).attr('fill', this.colorMap['direct'])
-      legendG.append('text').attr('x', endX).attr('y', startY+334).text('direct')
-      legendG.append('circle').attr('r', this.defaultR*2).attr('cx', 40).attr('cy', startY+350).attr('fill', this.colorMap['indirect'])
-      legendG.append('text').attr('x', endX).attr('y', startY+354).text('indirect')
+      legendG.append('circle').attr('class', 'l9').attr('r', this.defaultR*2).attr('cx', 40).attr('cy', startY+330).attr('fill', this.colorMap['direct'])
+      legendG.append('text').attr('class', 'l9').attr('x', endX).attr('y', startY+334).text('direct')
+      legendG.append('circle').attr('class', 'l9').attr('r', this.defaultR*2).attr('cx', 40).attr('cy', startY+350).attr('fill', this.colorMap['indirect'])
+      legendG.append('text').attr('class', 'l9').attr('x', endX).attr('y', startY+354).text('indirect')
 
 
     },
@@ -245,6 +245,15 @@ export default {
         })
         .on('click', d=>{
           d3.event.stopPropagation()
+
+          this.subsvg.select('.legendG').selectAll('path').attr('opacity', 0.1)
+          this.subsvg.select('.legendG').selectAll('circle').attr('opacity', 0.1)
+          this.subsvg.select('.legendG').selectAll('text').attr('opacity', 0.1)
+          this.subsvg.select('.legendG').selectAll('.lt').attr('opacity', 1)
+          this.subsvg.select('.legendG').selectAll('.l4').attr('opacity', 1)
+          this.subsvg.select('.legendG').selectAll('.l5').attr('opacity', 1)
+          this.subsvg.select('.legendG').selectAll('.l7').attr('opacity', 1)
+
           if(!this.isSelected && !this.pathSelected)
             this.changeColor(data, d)
           if(d.type != 'dir'){
@@ -254,7 +263,7 @@ export default {
           else{
             this.$bus.$emit('graph-dirid-selected', d.fileid)
           }
-          this.isSelected = true
+          this.isSelected = true         
         })
       this.nodes.append('title').text(d => d.filename)
 
@@ -278,12 +287,29 @@ export default {
         simulation.tick()
       }
       simulation.restart()
+
+      this.subsvg.select('.legendG').selectAll('path').attr('opacity', 0.1)
+      this.subsvg.select('.legendG').selectAll('circle').attr('opacity', 0.1)
+      this.subsvg.select('.legendG').selectAll('text').attr('opacity', 0.1)
+      this.subsvg.select('.legendG').selectAll('.lt').attr('opacity', 1)
+      this.subsvg.select('.legendG').selectAll('.l1').attr('opacity', 1)
+      this.subsvg.select('.legendG').selectAll('.l3').attr('opacity', 1)
+      this.subsvg.select('.legendG').selectAll('.l6').attr('opacity', 1)
+
       this.drawArc()
       this.svg.on('click', () =>{
         this.selectID = null
         this.isSelected = false
         this.resetState()
         this.$bus.$emit('graph-fileid-selected', null)
+        this.$bus.$emit('graph-dirid-selected', null)
+        this.subsvg.select('.legendG').selectAll('path').attr('opacity', 0.1)
+        this.subsvg.select('.legendG').selectAll('circle').attr('opacity', 0.1)
+        this.subsvg.select('.legendG').selectAll('text').attr('opacity', 0.1)
+        this.subsvg.select('.legendG').selectAll('.lt').attr('opacity', 1)
+        this.subsvg.select('.legendG').selectAll('.l1').attr('opacity', 1)
+        this.subsvg.select('.legendG').selectAll('.l3').attr('opacity', 1)
+        this.subsvg.select('.legendG').selectAll('.l6').attr('opacity', 1)
       })
      
       function ticked() {
@@ -514,7 +540,7 @@ export default {
     this.subsvg.append("defs")
       .append("marker")
       .attr('class', 'path-arrow')
-      .attr("id", "detail-path-arrow")
+      .attr("id", "legend-arrow")
       .attr("viewBox", "0 -5 20 20")
       .attr("refX", 0)
       .attr('refY', 0)
@@ -544,6 +570,16 @@ export default {
         return 
       this.resetState()
       if(d){
+        this.subsvg.select('.legendG').selectAll('path').attr('opacity', 0.1)
+        this.subsvg.select('.legendG').selectAll('circle').attr('opacity', 0.1)
+        this.subsvg.select('.legendG').selectAll('text').attr('opacity', 0.1)
+        this.subsvg.select('.legendG').selectAll('.lt').attr('opacity', 1)
+        this.subsvg.select('.legendG').selectAll('.l1').attr('opacity', 1)
+        this.subsvg.select('.legendG').selectAll('.l3').attr('opacity', 1)
+        this.subsvg.select('.legendG').selectAll('.l6').attr('opacity', 1)
+        this.subsvg.select('.legendG').selectAll('.l7').attr('opacity', 1)
+        this.subsvg.select('.legendG').selectAll('.l8').attr('opacity', 1)
+
         let curNode = this.nodes.filter(node=>node.fileid===d)
         this.isSelected = true
         this.selectID = d
@@ -583,7 +619,7 @@ export default {
           val.push(parseFloat(this.obj[i].val))
         }
         // 颜色色卡
-        var a = d3.rgb(165,0,38), b = d3.rgb(253,174,97)
+        var a = d3.rgb(118, 42, 131), b = d3.rgb(153, 112, 171)
         var compute = d3.interpolate(a, b)
         var linear = d3.scaleLinear().domain([Math.min(...val), Math.max(...val)]).range([0, 1])
         fileid.forEach((id, i) =>{
@@ -595,8 +631,25 @@ export default {
     // 平行坐标选择事件
     this.$bus.$on('parallel-fileid-selected', d =>{
       if(this.depth != this.maxDepth) return
-      if(d.length === this.filesList.length) this.nodes.attr('fill', this.nodeColor)
+      if(d.length === this.filesList.length){
+        this.nodes.attr('fill', this.nodeColor)
+        this.subsvg.select('.legendG').selectAll('path').attr('opacity', 0.1)
+        this.subsvg.select('.legendG').selectAll('circle').attr('opacity', 0.1)
+        this.subsvg.select('.legendG').selectAll('text').attr('opacity', 0.1)
+        this.subsvg.select('.legendG').selectAll('.lt').attr('opacity', 1)
+        this.subsvg.select('.legendG').selectAll('.l1').attr('opacity', 1)
+        this.subsvg.select('.legendG').selectAll('.l3').attr('opacity', 1)
+        this.subsvg.select('.legendG').selectAll('.l6').attr('opacity', 1)
+      }
       else this.nodes.attr('fill', node => {
+        this.subsvg.select('.legendG').selectAll('path').attr('opacity', 0.1)
+        this.subsvg.select('.legendG').selectAll('circle').attr('opacity', 0.1)
+        this.subsvg.select('.legendG').selectAll('text').attr('opacity', 0.1)
+        this.subsvg.select('.legendG').selectAll('.lt').attr('opacity', 1)
+        this.subsvg.select('.legendG').selectAll('.l1').attr('opacity', 1)
+        this.subsvg.select('.legendG').selectAll('.l3').attr('opacity', 1)
+        this.subsvg.select('.legendG').selectAll('.l6').attr('opacity', 1)
+        this.subsvg.select('.legendG').selectAll('.l7').attr('opacity', 1)
         if(d.indexOf(node.fileid) != -1) return this.selectColor
         else return this.nodeColor
       })
@@ -610,6 +663,13 @@ export default {
         this.nodes.attr('opacity', 1)
         this.links.attr('opacity', 1)
         this.pathSelected = false
+        this.subsvg.select('.legendG').selectAll('path').attr('opacity', 0.1)
+        this.subsvg.select('.legendG').selectAll('circle').attr('opacity', 0.1)
+        this.subsvg.select('.legendG').selectAll('text').attr('opacity', 0.1)
+        this.subsvg.select('.legendG').selectAll('.lt').attr('opacity', 1)
+        this.subsvg.select('.legendG').selectAll('.l1').attr('opacity', 1)
+        this.subsvg.select('.legendG').selectAll('.l3').attr('opacity', 1)
+        this.subsvg.select('.legendG').selectAll('.l6').attr('opacity', 1)
       }
       else{
         this.$axios.get('files/getPathInfoById', {
@@ -617,6 +677,14 @@ export default {
         }).then(({ data }) => {
           this.nodes.attr('opacity', 0.1)
           this.links.attr('opacity', 0.05)
+          this.subsvg.select('.legendG').selectAll('path').attr('opacity', 0.1)
+          this.subsvg.select('.legendG').selectAll('circle').attr('opacity', 0.1)
+          this.subsvg.select('.legendG').selectAll('text').attr('opacity', 0.1)
+          this.subsvg.select('.legendG').selectAll('.lt').attr('opacity', 1)
+          this.subsvg.select('.legendG').selectAll('.l2').attr('opacity', 1)
+          this.subsvg.select('.legendG').selectAll('.l3').attr('opacity', 1)
+          this.subsvg.select('.legendG').selectAll('.l9').attr('opacity', 1)
+
           this.pathSelected = true
           let badNodes = new Set(), badLinks = new Set(), 
               directNodes = new Set(),directLinks = new Set()
@@ -663,7 +731,7 @@ export default {
           this.svg.append("defs")
             .append("marker")
             .attr('class', 'path-arrow')
-            .attr("id", "detail-path-arrow")
+            .attr("id", "bad-path-arrow")
             .attr("viewBox", "5 -5 20 20")
             .attr("refX", 0)
             .attr('refY', 0)
@@ -694,7 +762,7 @@ export default {
             .attr("marker-start", d=> {
               if(directLinks.indexOf(d.source+'|'+d.target) === -1 || 
                 directLinks.indexOf(d.target+'|'+d.source) === -1)
-              return "url(#detail-path-arrow)"
+              return "url(#bad-path-arrow)"
             })
 
           this.svg.append('g').attr('class', 'badNodes')
@@ -719,7 +787,7 @@ export default {
               this.$bus.$emit('file-selected', this.filesList[d.fileid])
               this.$bus.$emit('graph-fileid-selected', d.fileid)
             })
-            .append('title').text(d => d.filename)      
+            .append('title').text(d => d.filename)   
         })
       }
     })

@@ -106,7 +106,12 @@ export default {
         .attr("fill", "black")
         .style("text-anchor", "middle")
         .attr("y", -9)
-        .text(function(d) { return d; });
+        .text(function(d) { 
+          if(d === 'func') return 'function'
+          if(d === 'depending') return 'outgoing'
+          if(d === 'depended') return 'incoming'
+          return d; 
+        });
 
       // 添加画刷
       g.append("g")

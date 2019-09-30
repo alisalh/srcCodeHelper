@@ -4,16 +4,16 @@
       <div class='control-panel bl-card-shadow'>
         <div class='title'>CONTROL PANEL</div>
         <div class='slider-wrapper depth'>
-          <div class='text-div'>Depth</div>
+          <div class='text-div'>Hierarchy Depth</div>
           <div class='slider-div'>
             <el-slider v-model="curDepth" :step="1" 
-              :min="1" :max="3" size="mini" show-input>
+              :min="1" :max="6" size="mini" show-input>
             </el-slider>
             <!-- <el-input v-model="curDepth" size="mini"></el-input> -->
           </div>
         </div>
         <div class='slider-wrapper number'>
-          <div class='text-div'>Number</div>
+          <div class='text-div'>Similar Number</div>
           <div class='slider-div'>
             <el-slider v-model="similarNum" :step="1"
               :min="1" :max="maxNum" size="mini" show-input>
@@ -22,10 +22,10 @@
           </div>
         </div>
         <div class='ratio-wrapper'>
-          <div class='text-div'>Type</div>
+          <div class='text-div'>Dependencies</div>
           <div class='ratio-div'>
-            <el-radio v-model="isSelected" label="2">Depending</el-radio>
-            <el-radio v-model="isSelected" label="1">Depended</el-radio>
+            <el-radio v-model="isSelected" label="1">Incoming</el-radio>
+            <el-radio v-model="isSelected" label="2">Outgoing</el-radio>
           </div>
         </div>
       </div>
@@ -52,7 +52,7 @@
     </div>
     <div class='right-panel bl-card-shadow'>
       <div class='title'>CODE VIEW</div>
-      <code-chart></code-chart>
+      <code-chart :referenceName="referenceName" :filesList="filesList"></code-chart>
     </div>
   </div>
 </template>
@@ -88,8 +88,8 @@ export default {
       selectedFileName: 'None',
       treeRoot: null,
       maxDepth: 0,
-      curDepth: 3, //vue: 6, d3: 3
-      libName: 'd3',
+      curDepth: 6, //vue: 6, d3: 3
+      libName: 'vue',
       similarNum: 10,
       maxNum: 20, //vue: 18, d3: 51
       isSelected: '1',
@@ -100,6 +100,7 @@ export default {
       dependedData: null,
       dependingData: null,
       badDependData: null,
+      referenceName: null,
       dirs: [],
       colorMap: { long: '#377eb8', indirect: '#66c2a5', direct: '#bf812d' }
     }
@@ -174,6 +175,13 @@ export default {
           this.badDependData = data
         })
     },
+    getReferenceName(){
+      this.$axios.get('files/getReferenceName', {
+        // 暂无参数
+      }).then(({data}) => {
+        this.referenceName = data
+      })
+    },
     partitionDataAdapter(selectedFile) {
       // 深搜查找节点
       function dfs(root) {
@@ -220,6 +228,7 @@ export default {
     this.getGraphData()
     this.getDirs()
     this.getStackData()
+    this.getReferenceName()
   }
 }
 
@@ -255,14 +264,14 @@ html {
         flex: 1;
         display: flex;
         .text-div{
-          flex: 1;
+          flex: 1.8;
         }
         .slider-div{
           flex: 4;
           display: flex;
-          margin-right: 30px;
+          margin-right: 20px;
           .el-slider__input{
-            width: 60px;
+            width: 70px;
             margin-right: 0;
           }
           .el-input-number--small .el-input-number__decrease [class*=el-icon], .el-input-number--small .el-input-number__increase [class*=el-icon]{
@@ -328,10 +337,10 @@ html {
         padding: 0px 20px 0px;
         display: flex;
         .text-div{
-          flex: 0.99;
+          flex: 1.25;
         }
         .ratio-div{
-          flex: 5;
+          flex: 3;
           .el-radio__inner {            
             width: 12px;
             height: 12px;

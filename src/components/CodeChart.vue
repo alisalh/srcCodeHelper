@@ -9,17 +9,64 @@ export default {
   data() {
     return {
       filename: null,
-      content: ''
+      content: '',
+      isPathSelected: false,
+      badPath: []
     }
   },
+  props: ['referenceName', 'filesList'],
+ 
   mounted() {
     this.$bus.$on('file-selected', (selectedFile) => {
+      let id = this.filesList.indexOf(selectedFile)
       this.filename = selectedFile.replace(/E:\\Workspace\\Visualization\\srcCodeHelperServer\\data\\/g,'')
       this.$axios.get('files/getFileContent', {
         filename: selectedFile
       }).then(({ data }) => {
-        this.content =`<pre><code>${data.content}</code></pre>`
+        let code = data.content
+        if(this.isPathSelected){
+          let preFile = new Set()
+          this.badPath.forEach(p =>{
+            let i = p.path.indexOf(id)
+            if(i === p.path.length-1){
+              preFile.add(p.path[0])
+            }
+            if(i >= 0 && i < p.path.length-1){
+              preFile.add(p.path[i+1])
+            }
+          })
+          preFile = [...preFile].map(d =>this.filesList[d])
+
+          let names = this.referenceName.find(file => file.filename === selectedFile).referenceName
+          let preNames = []
+          preFile.forEach(file =>{
+            names.forEach(name => {
+              if(name[file]) name[file].map(d => preNames.push(d))
+            })
+          })
+          
+          if(preNames.length >= 1){
+            preNames.forEach(name => {
+              code = code.replace(new RegExp("\\b"+name+"\\b", 'g'), `<mark>${name}</mark>` )
+            });
+          }
+        }
+        this.content =`<pre><code>${code}</code></pre>`
       })
+    })
+    this.$bus.$on('path-selected', d=> {
+      if(d.length > 0){
+        this.isPathSelected = true
+        this.$axios.get('files/getPathInfoById', {
+          ids: d
+        }).then(({data}) =>{
+          this.badPath = data.subPaths
+        })
+      }
+      else{
+        this.isPathSelected = false
+        this.badPath = []
+      }
     })
   }
 }
