@@ -9,7 +9,6 @@
             <el-slider v-model="curDepth" :step="1" 
               :min="1" :max="6" size="mini" show-input>
             </el-slider>
-            <!-- <el-input v-model="curDepth" size="mini"></el-input> -->
           </div>
         </div>
         <div class='slider-wrapper number'>
@@ -18,14 +17,13 @@
             <el-slider v-model="similarNum" :step="1"
               :min="1" :max="maxNum" size="mini" show-input>
             </el-slider>
-            <!-- <el-input v-model="similarNum" size="mini"></el-input> -->
           </div>
         </div>
         <div class='ratio-wrapper'>
-          <div class='text-div'>Dependencies</div>
-          <div class='ratio-div'>
-            <el-radio v-model="isSelected" label="1">Incoming</el-radio>
-            <el-radio v-model="isSelected" label="2">Outgoing</el-radio>
+          <div class='text-div'>Dependency Type</div>
+          <div class='ratio-div'>     
+            <el-radio v-model="isSelected" label="2">Incoming</el-radio>
+            <el-radio v-model="isSelected" label="1">Outgoing</el-radio>
           </div>
         </div>
       </div>
@@ -58,41 +56,31 @@
 </template>
 <script>
 import * as d3 from 'd3'
-import HelloWorld from './components/HelloWorld'
-import ChordChart from './components/ChordChart.vue'
 import DepHellWrapper from './components/DepHellWrapper.vue'
 import DepPath from './components/DepPath.vue'
 import ParallelCoordinate from './components/ParallelCoordinate.vue'
-import Partition from './components/Partition.vue'
-import BarChart from './components/BarChart.vue'
 import CodeChart from './components/CodeChart.vue'
 import ScatterPlot from './components/ScatterPlot.vue'
-import Test from './components/test.vue'
 
 export default {
   name: 'App',
   components: {
-    HelloWorld,
-    ChordChart,
     DepHellWrapper,
     DepPath,
     ParallelCoordinate,
-    Partition,
-    BarChart,
     CodeChart,
-    ScatterPlot,
-    Test
+    ScatterPlot
   },
   data() {
     return {
       selectedFileName: 'None',
       treeRoot: null,
       maxDepth: 0,
-      curDepth: 6, //vue: 6, d3: 3
-      libName: 'vue',
+      curDepth: 3, //vue: 6, d3: 3
+      libName: 'd3',
       similarNum: 10,
       maxNum: 20, //vue: 18, d3: 51
-      isSelected: '1',
+      isSelected: '2',
       filesInfo: null,
       filesDist: null,
       filesList: null,

@@ -26,8 +26,6 @@ export default {
       }
     }
   },
-  computed: {
-  },
   methods: {
     resetBrush() {
       this.extents = this.dimensions.map(function(p) { return [0, 0]; });
@@ -94,13 +92,10 @@ export default {
 
       g.append("g")
         .attr("class", "axis")
-        .each(function(d) { 
-          if(d === 'indirect' && that.libName === 'd3')
-            d3.select(this).call(d3.axisLeft(that.y[d]).tickValues([0,1,2,3,4,5]).tickFormat(d3.format(",.0f"))) 
-          else if(d === 'direct' && that.libName === 'vue')
-            d3.select(this).call(d3.axisLeft(that.y[d]).tickValues([0,1,2]).tickFormat(d3.format(",.0f"))) 
-          else
-            d3.select(this).call(d3.axisLeft(that.y[d])) 
+        .each(function(d) {
+          let yAxis = d3.axisLeft(that.y[d]).tickFormat(d3.format("d"))
+          if(that.y[d].domain()[1] <= 5) yAxis.ticks(that.y[d].domain()[1])
+          d3.select(this).call(yAxis)
         })
         .append("text")
         .attr("fill", "black")
@@ -171,7 +166,6 @@ export default {
     }
   },
   mounted() {
-    // let x = d3.scaleOrdinal().range([0, 1000]).domain(['a', 'b', 'c'])
     this.svgWidth = Math.floor(this.$refs.root.clientWidth)
     this.svgHeight = Math.floor(this.$refs.root.clientHeight)
     this.extents = this.dimensions.map(function(p) { return [0, 0]; })

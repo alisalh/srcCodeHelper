@@ -51,12 +51,12 @@ export default {
       legendG.append('path').attr('class', 'l3').attr('d', d3.line()([[startX, startY+60], [65, startY+60]])).attr('stroke', '#1a1a1a').attr('stroke-width', 2)
       legendG.append('path').attr('class', 'l4').attr('d', d3.line()([[startX, startY+75], [43, startY+75]])).attr('stroke', this.sourceColor).attr('stroke-width', 2)
       legendG.append('path').attr('class', 'l4').attr('d', d3.line()([[43, startY+75], [65, startY+75]])).attr('stroke', this.targetColor).attr('stroke-width', 2)
-      legendG.append('text').attr('class', 'l3 l4').attr('x', endX).attr('y', startY+70).text('bidirection')
+      legendG.append('text').attr('class', 'l3 l4').attr('x', endX).attr('y', startY+70).text('interdependent')
       
-      legendG.append('path').attr('class', 'l5').attr('d', d3.line()([[startX, startY+100], [65, startY+100]])).attr('stroke', this.sourceColor).attr('stroke-width', 2)
-      legendG.append('text').attr('class', 'l5').attr('x', endX).attr('y', startY+103).text('outgoing')
-      legendG.append('path').attr('class', 'l5').attr('d', d3.line()([[startX, startY+120], [65, startY+120]])).attr('stroke', this.targetColor).attr('stroke-width', 2)
-      legendG.append('text').attr('class', 'l5').attr('x', endX).attr('y', startY+123).text('incoming')
+      legendG.append('path').attr('class', 'l5').attr('d', d3.line()([[startX, startY+100], [65, startY+100]])).attr('stroke', this.targetColor).attr('stroke-width', 2)
+      legendG.append('text').attr('class', 'l5').attr('x', endX).attr('y', startY+103).text('incoming')
+      legendG.append('path').attr('class', 'l5').attr('d', d3.line()([[startX, startY+120], [65, startY+120]])).attr('stroke', this.sourceColor).attr('stroke-width', 2)
+      legendG.append('text').attr('class', 'l5').attr('x', endX).attr('y', startY+123).text('outgoing')
       
       
       legendG.append('text').attr('class', 'lt').attr('x', startX).attr('y', startY+150).text('The encoding of nodes')
@@ -71,10 +71,10 @@ export default {
       legendG.append('circle').attr('class', 'l8').attr('r', this.defaultR*2).attr('cx', 40).attr('cy', startY+240).attr('fill', '#762a83')
       legendG.append('text').attr('class', 'l8').attr('x', endX).attr('y', startY+244).text('similar')
 
-      legendG.append('circle').attr('class', 'l5').attr('r', this.defaultR*2).attr('cx', 40).attr('cy', startY+265).attr('fill', this.sourceColor)
-      legendG.append('text').attr('class', 'l5').attr('x', endX).attr('y', startY+269).text('depending')
-      legendG.append('circle').attr('class', 'l5').attr('r', this.defaultR*2).attr('cx', 40).attr('cy', startY+285).attr('fill', this.targetColor)
-      legendG.append('text').attr('class', 'l5').attr('x', endX).attr('y', startY+289).text('depended')
+      legendG.append('circle').attr('class', 'l5').attr('r', this.defaultR*2).attr('cx', 40).attr('cy', startY+265).attr('fill', this.targetColor)
+      legendG.append('text').attr('class', 'l5').attr('x', endX).attr('y', startY+269).text('incoming')
+      legendG.append('circle').attr('class', 'l5').attr('r', this.defaultR*2).attr('cx', 40).attr('cy', startY+285).attr('fill', this.sourceColor)
+      legendG.append('text').attr('class', 'l5').attr('x', endX).attr('y', startY+289).text('outgoing')
       legendG.append('circle').attr('class', 'l5').attr('r', this.defaultR*2).attr('cx', 40).attr('cy', startY+305).attr('fill', this.getGredientNode(this.subsvg, {index: -1}))
       legendG.append('text').attr('class', 'l5').attr('x', endX).attr('y', startY+309).text('interdependent')
 
@@ -184,7 +184,7 @@ export default {
       if(this.libName === 'vue'){
         simulation = d3.forceSimulation()
           .force("link", d3.forceLink().id(function(d) { return d.fileid; }))
-          .force("charge", d3.forceManyBody().strength(-200).distanceMin(50).distanceMax(130))
+          .force("charge", d3.forceManyBody().strength(-200).distanceMin(55).distanceMax(130))
           .force("center", d3.forceCenter(this.svgHeight  / 2, this.svgWidth/ 2))
           .force('collision', d3.forceCollide().radius(function(d) { return d.r + 10 }))
         if(this.depth === 3)
@@ -222,7 +222,7 @@ export default {
           }
           return this.linkColor
         })
-        .attr("stroke-width", 0.4)
+        .attr("stroke-width", 0.3)
      
       this.nodes = this.svg.append("g")
         .attr("class", "nodes")
@@ -325,8 +325,8 @@ export default {
     },
     changeColor(data, d){
       this.resetState()
-      this.nodes.attr('opacity', 0.1)
-      this.links.attr('opacity', 0.05)
+      this.nodes.attr('opacity', 0.0)
+      this.links.attr('opacity', 0.0)
       this.svg.select('.arcG').selectAll('.dirNode').attr('opacity', 0.05)
       //当前节点颜色
       let curNode = this.nodes.filter(node =>node.fileid === d.fileid)
@@ -523,8 +523,6 @@ export default {
       })
     })
   },
-  updated() {
-  },
   mounted() {
     // 获取高度, 添加svg
     this.svgWidth = Math.floor(this.$refs.root.clientWidth)
@@ -675,8 +673,8 @@ export default {
         this.$axios.get('files/getPathInfoById', {
           ids: d
         }).then(({ data }) => {
-          this.nodes.attr('opacity', 0.1)
-          this.links.attr('opacity', 0.05)
+          this.nodes.attr('opacity', 0.0)
+          this.links.attr('opacity', 0.0)
           this.subsvg.select('.legendG').selectAll('path').attr('opacity', 0.1)
           this.subsvg.select('.legendG').selectAll('circle').attr('opacity', 0.1)
           this.subsvg.select('.legendG').selectAll('text').attr('opacity', 0.1)
@@ -747,8 +745,8 @@ export default {
             .selectAll('path').data(badLinks)
             .enter().append('path')
             .attr('d', d =>{
-              let start = badNodes.filter(node => node.fileid === d.source)[0],
-                end = badNodes.filter(node => node.fileid === d.target)[0]
+              let start = badNodes.filter(node => node.fileid === d.target)[0],
+                end = badNodes.filter(node => node.fileid === d.source)[0]
               return d3.line()([[start.x, start.y], [end.x, end.y]])
             })
             
@@ -787,6 +785,16 @@ export default {
               this.$bus.$emit('file-selected', this.filesList[d.fileid])
               this.$bus.$emit('graph-fileid-selected', d.fileid)
             })
+            .on('mouseenter', d=>{
+                if(data.subPaths.length === 1){
+                  this.$bus.$emit('bad-fileid-selected', data.subIDs.filter(item => item.fileid === d.fileid)[0].ids)
+                }
+              })
+              .on('mouseleave', d=>{
+                if(data.subPaths.length === 1){
+                  this.$bus.$emit('bad-fileid-selected', null)
+                }
+              })
             .append('title').text(d => d.filename)   
         })
       }

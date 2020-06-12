@@ -18,7 +18,7 @@ export default {
       dependingData: null,
       maxDepended: 0, 
       maxDepending: 0,
-      dependType: '1', // '1'表示被其他文件引用，'2'表示引用其他文件
+      dependType: '2', // '1'表示被其他文件引用，'2'表示引用其他文件
       hierarchyHiehgt: 100,
       legendHeight: 60,
       legendData: [{type: 'indirect'}, {type: 'direct'}],
@@ -211,9 +211,9 @@ export default {
             this.selectedNode.push(d)
             this.svg.selectAll('.linkG path').remove()
             this.svg.selectAll('.arrow-line').remove()
-            if(this.dependType === '1')
+            if(this.dependType === '1') // outgoing
               this.drawSourceLinks(d)
-            if(this.dependType === '2')
+            if(this.dependType === '2') // incoming
               this.drawTargetLinks(d)
           }
         }
@@ -229,7 +229,7 @@ export default {
       })
     },
     //绘制被引用的连线
-    drawSourceLinks(d){
+    drawTargetLinks(d){
       // 添加引用和被引用连线
       let selectedFile = this.filesInfo.filter(file => file.id === d.data.id)
       let source = selectedFile[0].fileInfo.depended
@@ -262,7 +262,7 @@ export default {
         .attr("marker-end", "url(#triangle)")
     },
     //绘制引用的连线
-    drawTargetLinks(d){
+    drawSourceLinks(d){
       // 添加引用和被引用连线
       let selectedFile = this.filesInfo.filter(file => file.id === d.data.id)
       let source = selectedFile[0].fileInfo.depending
@@ -302,7 +302,7 @@ export default {
   watch: {
     dependType(val){
       this.svg.selectAll('.linkG path').remove()
-      if(val === '1'){
+      if(val === '2'){
         var a = d3.rgb(252,187,161), b = d3.rgb(185,2,7)
         var compute = d3.interpolate(a, b)
         var linear = d3.scaleLinear().domain([1, this.maxDepended]).range([0, 1])
@@ -315,9 +315,9 @@ export default {
         })
         this.svg.selectAll('.linkG path').remove()
         this.svg.selectAll('.arrow-line').remove()
-        if(this.selectedNode.length > 0) this.selectedNode.forEach(d => this.drawSourceLinks(d))
+        if(this.selectedNode.length > 0) this.selectedNode.forEach(d => this.drawTargetLinks(d))
       }
-      if(val === '2'){
+      if(val === '1'){
         var a = d3.rgb(252,187,161), b = d3.rgb(185,2,7)
         var compute = d3.interpolate(a, b)
         var linear = d3.scaleLinear().domain([1, this.maxDepending]).range([0, 1])
@@ -330,7 +330,7 @@ export default {
         })
         this.svg.selectAll('.linkG path').remove()
         this.svg.selectAll('.arrow-line').remove()
-        if(this.selectedNode.length > 0) this.selectedNode.forEach(d => this.drawTargetLinks(d))
+        if(this.selectedNode.length > 0) this.selectedNode.forEach(d => this.drawSourceLinks(d))
       }
     }
   },
